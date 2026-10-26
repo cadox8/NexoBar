@@ -1,0 +1,168 @@
+{
+  "locale": "en-US",
+  "messages": {
+    "permissions": {
+      "sell": "Add products and manual amounts to a list",
+      "discount": "Apply discounts to consumption lines",
+      "remove_line": "Remove lines from an open list",
+      "close_list": "Take payment and close consumption lists",
+      "void_ticket": "Request a ticket cancellation or correction",
+      "manage_products": "Manage categories, taxes, and products",
+      "manage_users": "Manage users, roles, and permissions",
+      "manage_cash": "Open, close, and reconcile the cash register",
+      "view_reports": "View sales and cash reports",
+      "configure_business": "Configure business and invoicing details",
+      "export_fiscal": "Export and verify fiscal records"
+    },
+    "roles": {
+      "administrator": {
+        "name": "Administrator",
+        "description": "Full access"
+      },
+      "manager": {
+        "name": "Manager",
+        "description": "Manage shifts and the product catalogue"
+      },
+      "bartender": {
+        "name": "Bartender",
+        "description": "Sell and take payment for lists"
+      }
+    },
+    "users": {
+      "default_admin_name": "Administrator"
+    },
+    "taxes": {
+      "general_21": "Standard VAT 21%",
+      "reduced_10": "Reduced VAT 10%",
+      "super_reduced_4": "Super-reduced VAT 4%",
+      "exempt_0": "Exempt 0%"
+    },
+    "categories": {
+      "default": "Default",
+      "drinks": "Drinks",
+      "coffee": "Coffee",
+      "other": "Other",
+      "title": "Categories",
+      "back": "Back"
+    },
+    "lists": {
+      "manual_amount": "Manual",
+      "amount_prefix": "Amount: ",
+      "add_manual": "Add amount",
+      "clear": "CLEAR",
+      "print": "PRINT",
+      "title": "Ticket",
+      "quantity_format": "{name} (x{quantity})",
+      "open_drawer": "Drawer",
+      "preview_title": "Ticket preview",
+      "backspace": "DEL"
+    },
+    "header": {
+      "business_fallback": "NexoBar",
+      "context_format": "{business} - {user}",
+      "clock_format": "%H:%M:%S",
+      "time_format": "Time: {time}"
+    },
+    "number": {
+      "decimal_separator": ".",
+      "group_separator": ",",
+      "currency_suffix": " €"
+    },
+    "receipt": {
+      "ticket": "Receipt",
+      "test_series": "TEST",
+      "test_number": "TEST-0001",
+      "date": "Date",
+      "date_format": "%m/%d/%Y %I:%M:%S %p",
+      "item": "ITEM",
+      "amount": "AMOUNT",
+      "total": "TOTAL",
+      "footer": "Thank you for your visit"
+    },
+    "splash": {
+      "loading": "Loading resources...",
+      "preparing": "Preparing the point of sale..."
+    },
+    "products": {
+      "title": "Products",
+      "empty": "No products in the default category."
+    },
+    "warnings": {
+      "no_business": "No business is configured; starting product test mode.",
+      "no_audio": "Audio device could not be initialized.",
+      "warning_prefix": "Warning: ",
+      "product_prefix": "Warning: "
+    },
+    "printer": {
+      "select_label": "Receipt printer",
+      "name_missing": "Select a printer or configure the system default.",
+      "open_failed": "Could not open the printer. Code: ",
+      "start_failed": "Could not start the print job. Code: ",
+      "write_failed": "Could not send the receipt. Code: ",
+      "unsupported": "RAW printing requires an ESC/POS-compatible printer queue.",
+      "job_name": "NexoBar receipt"
+    },
+    "settings": {
+      "staff": "Employees, roles and permissions",
+      "business": "Business configuration",
+      "template": "Ticket template",
+      "status": "Information and status",
+      "history": "Billing history and day close",
+      "staff_detail": "Employee and role management. Existing permissions are assigned to roles and cannot be created or deleted.",
+      "business_detail": "Fiscal settings and business details.",
+      "template_detail": "Create and edit the ticket template.",
+      "status_detail": "License, detected USB printer and ticket/drawer tests.",
+      "history_detail": "Daily and monthly history with printable day close.",
+      "close_day": "Close day and print summary",
+      "close_day_sent": "Daily close prepared for printing",
+      "field_name": "Name",
+      "field_role": "Role",
+      "field_legal_name": "Legal name",
+      "field_trade_name": "Business name",
+      "field_nif": "Tax ID",
+      "field_address": "Address",
+      "field_template": "Ticket content",
+      "close_day": "Close day and print summary",
+      "close_day_sent": "Daily close prepared for printing",
+      "debug_preview": "Ticket preview (Debug)",
+      "printer_test_both": "Test ticket and drawer",
+      "printer_test_ticket": "Print test ticket",
+      "printer_test_drawer": "Test drawer",
+      "printer_test_sent": "Test sent to USB printer.",
+      "drawer_test_sent": "Drawer pulse sent.",
+      "printer_test_failed": "Test failed: ",
+      "usb_default": "Default USB printer: ",
+      "usb_single": "USB printer: ",
+      "usb_missing": "No unique or default USB printer found."
+    },
+    "errors": {
+      "startup_title": "Startup errors",
+      "runtime_title": "Screen error",
+      "error_prefix": "Error: ",
+      "exception_prefix": "Unexpected error: ",
+      "resources_load": "Could not load application resources: ",
+      "database_start": "Could not start the database: ",
+      "business_read": "Could not read the configured business.",
+      "invalid_license": "The configured license is invalid.",
+      "unknown_startup": "Unknown error during application startup.",
+      "unknown_update": "Unknown error while updating the screen.",
+      "unknown_draw": "Unknown error while drawing the screen.",
+      "draw_failed": "Could not draw the screen.",
+      "administrator_role_missing": "The administrator role could not be found.",
+      "quantity_positive": "Quantity must be greater than zero.",
+      "list_not_open": "The list is no longer open.",
+      "product_inactive": "This product is inactive.",
+      "open_price_required": "Enter a price for this product.",
+      "fixed_price_override": "A fixed-price product cannot be repriced here.",
+      "product_tax_inactive": "The product's tax is inactive.",
+      "price_negative": "Price cannot be negative.",
+      "manual_amount_positive": "The manual amount must be greater than zero.",
+      "selected_tax_inactive": "The selected tax is inactive.",
+      "historical_immutable": "Tickets and historical records cannot be changed.",
+      "ticket_template_missing": "The receipt template could not be opened.",
+      "ticket_print_failed": "Could not generate the receipt: ",
+      "ticket_i18n_missing": "Cannot generate the receipt without loaded translations.",
+      "clock_format_failed": "Could not update the clock."
+    }
+  }
+}

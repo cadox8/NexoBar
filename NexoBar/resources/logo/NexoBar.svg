@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+    <title id="title">NexoBar</title>
+    <desc id="desc">Logotipo de NexoBar para un sistema POS de hostelería, con símbolo de conexiones en azul marino y turquesa.
+    </desc>
+    <g transform="translate(48 48)">
+        <rect x="0" y="0" width="264" height="264" rx="56" fill="#142B45"/>
+        <path d="M64 190V75l136 115V75" fill="none" stroke="#F6FAFC" stroke-width="20" stroke-linecap="round"
+              stroke-linejoin="round"/>
+        <path d="M64 190h136" fill="none" stroke="#2DD4BF" stroke-width="20" stroke-linecap="round"/>
+        <circle cx="64" cy="75" r="15" fill="#2DD4BF"/>
+        <circle cx="200" cy="75" r="15" fill="#2DD4BF"/>
+        <circle cx="200" cy="190" r="15" fill="#2DD4BF"/>
+    </g>
+    <text x="354" y="218" font-family="Inter, Montserrat, Arial, sans-serif" font-size="132" font-weight="750" letter-spacing="-5"
+          fill="#142B45">Nexo
+        <tspan fill="#2DD4BF">Bar</tspan>
+    </text>
+    <path d="M361 260h98" stroke="#2DD4BF" stroke-width="8" stroke-linecap="round"/>
+    <text x="481" y="270" font-family="Inter, Montserrat, Arial, sans-serif" font-size="27" font-weight="600" letter-spacing="5"
+          fill="#62758A">VENTAS CONECTADAS
+    </text>
+</svg>

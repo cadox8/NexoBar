@@ -1,0 +1,168 @@
+{
+  "locale": "es-ES",
+  "messages": {
+    "permissions": {
+      "sell": "Añadir productos e importes manuales a una lista",
+      "discount": "Aplicar descuentos a las líneas de consumo",
+      "remove_line": "Retirar líneas de una lista abierta",
+      "close_list": "Cobrar y cerrar listas de consumo",
+      "void_ticket": "Solicitar la anulación o rectificación de un ticket",
+      "manage_products": "Gestionar categorías, impuestos y productos",
+      "manage_users": "Gestionar usuarios, roles y permisos",
+      "manage_cash": "Abrir, cerrar y cuadrar la caja",
+      "view_reports": "Consultar ventas y caja",
+      "configure_business": "Configurar los datos del negocio y la facturación",
+      "export_fiscal": "Exportar y verificar registros fiscales"
+    },
+    "roles": {
+      "administrator": {
+        "name": "Administrador",
+        "description": "Acceso completo"
+      },
+      "manager": {
+        "name": "Encargado",
+        "description": "Gestión del turno y del catálogo"
+      },
+      "bartender": {
+        "name": "Barra",
+        "description": "Ventas y cobro de listas"
+      }
+    },
+    "users": {
+      "default_admin_name": "Administrador"
+    },
+    "taxes": {
+      "general_21": "IVA general 21 %",
+      "reduced_10": "IVA reducido 10 %",
+      "super_reduced_4": "IVA superreducido 4 %",
+      "exempt_0": "Exento 0 %"
+    },
+    "categories": {
+      "default": "General",
+      "drinks": "Copas",
+      "coffee": "Café",
+      "other": "Otros",
+      "title": "Categorías",
+      "back": "Volver"
+    },
+    "lists": {
+      "manual_amount": "Manual",
+      "amount_prefix": "Importe: ",
+      "add_manual": "Añadir importe",
+      "clear": "VACIAR",
+      "print": "IMPRIMIR",
+      "title": "Ticket",
+      "quantity_format": "{name} (x{quantity})",
+      "open_drawer": "Cajón",
+      "preview_title": "Vista previa del ticket",
+      "backspace": "DEL"
+    },
+    "header": {
+      "business_fallback": "NexoBar",
+      "context_format": "{business} - {user}",
+      "clock_format": "%H:%M:%S",
+      "time_format": "Hora: {time}"
+    },
+    "number": {
+      "decimal_separator": ",",
+      "group_separator": ".",
+      "currency_suffix": " €"
+    },
+    "receipt": {
+      "ticket": "Ticket",
+      "test_series": "PRUEBA",
+      "test_number": "PRUEBA-0001",
+      "date": "Fecha",
+      "date_format": "%d/%m/%Y %H:%M:%S",
+      "item": "CONCEPTO",
+      "amount": "IMPORTE",
+      "total": "TOTAL",
+      "footer": "Gracias por su visita"
+    },
+    "splash": {
+      "loading": "Cargando recursos...",
+      "preparing": "Preparando el punto de venta..."
+    },
+    "products": {
+      "title": "Productos",
+      "empty": "No hay productos en la categoría predeterminada."
+    },
+    "warnings": {
+      "no_business": "No hay ningún negocio configurado; se inicia el modo de pruebas de productos.",
+      "no_audio": "No se pudo inicializar el dispositivo de audio.",
+      "warning_prefix": "Aviso: ",
+      "product_prefix": "Aviso: "
+    },
+    "printer": {
+      "select_label": "Impresora de tickets",
+      "name_missing": "Selecciona una impresora o configura la predeterminada del sistema.",
+      "open_failed": "No se pudo abrir la impresora. Código: ",
+      "start_failed": "No se pudo iniciar el trabajo de impresión. Código: ",
+      "write_failed": "No se pudo enviar el ticket. Código: ",
+      "unsupported": "La impresi\u00f3n RAW requiere una cola compatible con ESC/POS.",
+      "job_name": "Ticket de NexoBar"
+    },
+    "settings": {
+      "staff": "Empleados, roles y permisos",
+      "business": "Configuración del negocio",
+      "template": "Plantilla del ticket",
+      "status": "Información y estado",
+      "history": "Histórico y cierre diario",
+      "staff_detail": "Gestión de empleados y roles. Los permisos existentes se asignan a roles y no se pueden crear ni eliminar.",
+      "business_detail": "Configuración fiscal y datos del negocio.",
+      "template_detail": "Creación y edición de la plantilla del ticket.",
+      "status_detail": "Licencia, impresora USB detectada y pruebas de ticket/cajón.",
+      "history_detail": "Histórico por día y mes, con cierre diario imprimible.",
+      "close_day": "Cerrar día e imprimir resumen",
+      "close_day_sent": "Cierre de día preparado para imprimir",
+      "field_name": "Nombre",
+      "field_role": "Rol",
+      "field_legal_name": "Razón social",
+      "field_trade_name": "Nombre comercial",
+      "field_nif": "NIF",
+      "field_address": "Dirección",
+      "field_template": "Contenido de ticket",
+      "close_day": "Cerrar día e imprimir resumen",
+      "close_day_sent": "Cierre de día preparado para imprimir",
+      "debug_preview": "Vista previa del ticket (Debug)",
+      "printer_test_both": "Probar ticket y cajón",
+      "printer_test_ticket": "Imprimir ticket de prueba",
+      "printer_test_drawer": "Probar cajón",
+      "printer_test_sent": "Prueba enviada a la impresora USB.",
+      "drawer_test_sent": "Pulso enviado al cajón.",
+      "printer_test_failed": "Falló la prueba: ",
+      "usb_default": "Impresora USB predeterminada: ",
+      "usb_single": "Impresora USB: ",
+      "usb_missing": "No se encontró una impresora USB única o predeterminada."
+    },
+    "errors": {
+      "startup_title": "Errores de inicio",
+      "runtime_title": "Error de pantalla",
+      "error_prefix": "Error: ",
+      "exception_prefix": "Error inesperado: ",
+      "resources_load": "No se pudieron cargar los recursos de la aplicación: ",
+      "database_start": "No se pudo iniciar la base de datos: ",
+      "business_read": "No se pudo leer el negocio configurado.",
+      "invalid_license": "La licencia configurada no es válida.",
+      "unknown_startup": "Error desconocido al inicializar la aplicación.",
+      "unknown_update": "Error desconocido al actualizar la pantalla.",
+      "unknown_draw": "Error desconocido al dibujar la pantalla.",
+      "draw_failed": "No se pudo dibujar la pantalla.",
+      "administrator_role_missing": "No se encuentra el rol de administrador.",
+      "quantity_positive": "La cantidad debe ser mayor que cero.",
+      "list_not_open": "La lista ya no está abierta.",
+      "product_inactive": "El producto está desactivado.",
+      "open_price_required": "Debes indicar el precio de este producto.",
+      "fixed_price_override": "No se puede cambiar el precio de un producto con precio fijo.",
+      "product_tax_inactive": "El impuesto del producto está desactivado.",
+      "price_negative": "El precio no puede ser negativo.",
+      "manual_amount_positive": "El importe manual debe ser mayor que cero.",
+      "selected_tax_inactive": "El impuesto seleccionado está desactivado.",
+      "historical_immutable": "Los tickets y registros históricos no se pueden modificar.",
+      "ticket_template_missing": "No se pudo abrir la plantilla del ticket.",
+      "ticket_print_failed": "No se pudo generar el ticket: ",
+      "ticket_i18n_missing": "No se puede generar el ticket sin traducciones cargadas.",
+      "clock_format_failed": "No se pudo actualizar la hora."
+    }
+  }
+}
