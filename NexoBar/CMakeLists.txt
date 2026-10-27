@@ -32,6 +32,16 @@ set_target_properties(NexoBarLibUsb PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}"
 )
 
+set(NEXOBAR_LIBUSB_LINK_LIBRARIES NexoBarLibUsb)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Threads REQUIRED)
+    find_library(UDEV_LIBRARY NAMES udev REQUIRED)
+    list(APPEND NEXOBAR_LIBUSB_LINK_LIBRARIES
+            "${UDEV_LIBRARY}"
+            Threads::Threads
+    )
+endif ()
+
 include(FetchContent)
 option(NEXOBAR_FETCH_RAYLIB "Fetch raylib when no package is installed" ON)
 find_package(raylib CONFIG QUIET)
@@ -154,7 +164,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PRIVATE
         Platform
         ${NEXOBAR_RAYLIB_LINK_LIBRARIES}
-        NexoBarLibUsb
+        ${NEXOBAR_LIBUSB_LINK_LIBRARIES}
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

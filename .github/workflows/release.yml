@@ -25,8 +25,23 @@ jobs:
             platform: linux-x64
             preset: ci-linux
     runs-on: ${{ matrix.os }}
+    env:
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite
     steps:
       - uses: actions/checkout@v5
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-binary-cache
+          key: vcpkg-${{ runner.os }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ matrix.preset }}-
+      - name: Set up compiler cache
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: Linux build dependencies
         if: runner.os == 'Linux'
         run: >-
@@ -51,6 +66,12 @@ jobs:
           configurePreset: ${{ matrix.preset }}
           buildPreset: ${{ matrix.preset }}
           testPreset: ${{ matrix.preset }}
+      - name: Save vcpkg binary cache
+        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-binary-cache
+          key: vcpkg-${{ runner.os }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
       - name: Install package tree
         run: cmake --install build --prefix package
       - name: Create archive
