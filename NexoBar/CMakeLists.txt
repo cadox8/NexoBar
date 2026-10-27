@@ -62,10 +62,21 @@ else ()
 endif ()
 
 # Package-provided imported targets are directory-scoped by default. Promote
-# raylib so the root-level regression tests can link the same dependency.
+# raylib and its Linux GLFW dependency so the root-level regression tests can
+# link the same targets.
 get_target_property(NEXOBAR_RAYLIB_IMPORTED ${NEXOBAR_RAYLIB_TARGET} IMPORTED)
 if (NEXOBAR_RAYLIB_IMPORTED)
     set_property(TARGET ${NEXOBAR_RAYLIB_TARGET} PROPERTY IMPORTED_GLOBAL TRUE)
+endif ()
+
+set(NEXOBAR_RAYLIB_LINK_LIBRARIES ${NEXOBAR_RAYLIB_TARGET})
+if (NEXOBAR_RAYLIB_IMPORTED AND UNIX AND NOT APPLE)
+    find_package(glfw3 CONFIG REQUIRED)
+    get_target_property(NEXOBAR_GLFW_IMPORTED glfw IMPORTED)
+    if (NEXOBAR_GLFW_IMPORTED)
+        set_property(TARGET glfw PROPERTY IMPORTED_GLOBAL TRUE)
+    endif ()
+    list(APPEND NEXOBAR_RAYLIB_LINK_LIBRARIES glfw)
 endif ()
 
 set(BACKEND
@@ -142,7 +153,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         Platform
-        ${NEXOBAR_RAYLIB_TARGET}
+        ${NEXOBAR_RAYLIB_LINK_LIBRARIES}
         NexoBarLibUsb
 )
 

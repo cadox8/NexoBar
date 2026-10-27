@@ -8,6 +8,7 @@
     "boost-serialization",
     "boost-signals2",
     "ftxui",
+    "glfw3",
     "gtest",
     "libusb",
     "nlohmann-json",
