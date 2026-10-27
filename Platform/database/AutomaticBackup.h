@@ -18,8 +18,12 @@ namespace Nearon {
     class PLATFORM_API AutomaticBackup {
     public:
         struct Options {
-            std::chrono::hours interval{24};
-            std::chrono::days retention{30};
+            constexpr Options(std::chrono::hours interval = std::chrono::hours{24},
+                              std::chrono::days retention = std::chrono::days{30}) noexcept
+                : interval(interval), retention(retention) {}
+
+            std::chrono::hours interval;
+            std::chrono::days retention;
         };
 
         AutomaticBackup(Connection& source, std::filesystem::path directory, Options options = {},
