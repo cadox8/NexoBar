@@ -6,6 +6,8 @@
 #include <string>
 #include <utility>
 
+enum class ButtonIcon { None, Plus };
+
 class Button : public IComponent {
 public:
     Button() = default;
@@ -16,6 +18,7 @@ public:
     TexturePtr image;
     FontPtr font;
     SoundPtr clickSound;
+    ButtonIcon icon = ButtonIcon::None;
     int fontSize = 20;
     float roundness = .12f;
     LayoutInsets padding = LayoutInsets::symmetric(12, 8);

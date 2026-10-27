@@ -3,6 +3,7 @@
 #include <memory>
 #include <algorithm>
 #include <vector>
+#include <cstdlib>
 
 class UIInput {
 public:
@@ -12,9 +13,12 @@ public:
         s_clickSuppressionLatched = false;
         s_keyboardTargets.clear();
         const int touches = GetTouchPointCount();
-        s_pointerPosition = touches > 0 ? GetTouchPosition(0) : GetMousePosition();
-        s_pointerPressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (touches > 0 && !s_touchWasDown);
-        s_pointerReleased = IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || (touches == 0 && s_touchWasDown);
+        const bool touchWasDown = s_touchWasDown;
+        if (touches > 0) s_touchMode = true;
+        if (touches > 0) s_pointerPosition = GetTouchPosition(0);
+        else if (!touchWasDown) s_pointerPosition = GetMousePosition();
+        s_pointerPressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (touches > 0 && !touchWasDown);
+        s_pointerReleased = IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || (touches == 0 && touchWasDown);
         s_touchWasDown = touches > 0;
         if (IsKeyPressed(KEY_TAB) && !s_keyboardTargetsPrevious.empty()) {
             const int direction = IsKeyDown(KEY_LEFT_SHIFT) ? -1 : 1;
@@ -40,6 +44,8 @@ public:
     static Vector2 pointerPosition() noexcept { return s_pointerPosition; }
     static bool pointerPressed() noexcept { return s_pointerPressed; }
     static bool pointerReleased() noexcept { return s_pointerReleased; }
+    static bool touchMode() noexcept { return s_touchMode; }
+    static void markPhysicalKeyboard() noexcept { s_touchMode = false; }
 
     static void registerKeyboardTarget(const void* target) {
         s_keyboardTargets.push_back(target);
@@ -50,7 +56,9 @@ public:
         const auto it = std::ranges::find(s_keyboardTargets, target);
         if (it == s_keyboardTargets.end()) return false;
         const auto index = static_cast<int>(std::distance(s_keyboardTargets.begin(), it));
-        return index == s_focusIndex && (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE));
+        // Space is text input, not a global navigation shortcut. Using it here
+        // caused a focused editor to activate an unrelated navigation button.
+        return index == s_focusIndex && IsKeyPressed(KEY_ENTER);
     }
 
     static bool keyboardFocused(const void* target) {
@@ -65,12 +73,26 @@ public:
     }
 
 private:
+    static bool environmentTouchOnly() noexcept {
+#ifdef _WIN32
+        char* value = nullptr;
+        std::size_t length = 0;
+        _dupenv_s(&value, &length, "NEXOBAR_TOUCH_ONLY");
+        const bool enabled = value && *value == '1';
+        std::free(value);
+        return enabled;
+#else
+        const char* value = std::getenv("NEXOBAR_TOUCH_ONLY");
+        return value && *value == '1';
+#endif
+    }
     static inline bool s_mouseWheelConsumed = false;
     static inline bool s_clicksSuppressed = false;
     static inline bool s_clickSuppressionLatched = false;
     static inline Vector2 s_pointerPosition{};
     static inline bool s_pointerPressed = false, s_pointerReleased = false, s_touchWasDown = false;
     static inline int s_focusIndex = 0;
+    static inline bool s_touchMode = environmentTouchOnly();
     static inline std::vector<const void*> s_keyboardTargets, s_keyboardTargetsPrevious;
 };
 

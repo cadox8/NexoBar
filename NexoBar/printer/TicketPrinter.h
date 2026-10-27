@@ -1,6 +1,7 @@
 #pragma once
 
 #include "database/hospitality/HospitalityDatabase.h"
+#include "i18n/I18n.h"
 #include "ReceiptLayout.h"
 #include <string>
 #include <vector>
@@ -25,6 +26,4 @@ public:
                                    const std::string& footer = {},
                                    const ReceiptLayout& layout = ReceiptLayout{});
 
-private:
-    std::string effectivePrinterName(std::string& error, const platform::I18n& i18n) const;
 };

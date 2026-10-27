@@ -4,11 +4,31 @@
 
 class ScreenBase : public IScreen {
 public:
-    ScreenBase() : root(std::make_shared<BlockComponent>()) {}
+    explicit ScreenBase(LayoutAxis axis = LayoutAxis::Vertical,
+                        Color background = Color{26, 33, 44, 255})
+        : root(std::make_shared<BlockComponent>(axis, background)) {}
+
+    ScreenBase& add(const ComponentPtr& component, LayoutOptions options = {}) {
+        root->content.add(component, options);
+        return *this;
+    }
+
+    ScreenBase& add(const ComponentPtr& component, LayoutSize width, LayoutSize height,
+                    LayoutInsets margin = {}) {
+        root->content.add(component, width, height, margin);
+        return *this;
+    }
+
+    ScreenBase& gap(float value) { root->content.gap(value); return *this; }
+    ScreenBase& padding(LayoutInsets value) { root->content.padding(value); return *this; }
+    ScreenBase& grid(std::vector<float> rows, std::vector<float> columns) {
+        root->content.grid(std::move(rows), std::move(columns));
+        return *this;
+    }
 
     void update(const float dt) override {
         if (root) {
-            root->area({.x = 0, .y = 0, .width = static_cast<float>(GetScreenWidth()), .height = static_cast<float>(GetScreenHeight())});
+            root->area(m_area);
             root->update(dt);
         }
     }

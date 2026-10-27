@@ -1,0 +1,11 @@
+#pragma once
+
+#include <string>
+#include <unordered_map>
+
+inline std::unordered_map<std::string, std::string> embeddedLanguageCatalogs() {
+    return {
+        {"es-ES", R"NEXOBAR_ES(@NEXOBAR_ES_CATALOG@)NEXOBAR_ES"},
+        {"en-US", R"NEXOBAR_EN(@NEXOBAR_EN_CATALOG@)NEXOBAR_EN"}
+    };
+}

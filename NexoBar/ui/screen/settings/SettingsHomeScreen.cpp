@@ -2,6 +2,7 @@
 
 #include "../../../NexoBar.h"
 #include "SettingsWorkspaceScreen.h"
+#include "SettingsScreens.h"
 #include "StaffSettingsScreen.h"
 
 #include <algorithm>
@@ -9,10 +10,12 @@
 SettingsHomeScreen::SettingsHomeScreen(PermissionCheck hasPermission)
     : m_root(std::make_shared<BlockComponent>(LayoutAxis::Vertical,
                                               Color{24, 31, 42, 255})),
-      m_title(std::make_shared<StaticText>("Ajustes")),
-      m_subtitle(
-          std::make_shared<StaticText>("Administración del punto de venta")) {
-    m_font = NexoBarImp::get()->defaultFont();
+      m_title(std::make_shared<StaticText>()),
+      m_subtitle(std::make_shared<StaticText>()) {
+    NexoBarImp nexo;
+    m_font = nexo->defaultFont();
+    m_title->text = nexo->text("settings.title");
+    m_subtitle->text = nexo->text("settings.subtitle");
     for (const auto& text: {m_title, m_subtitle}) {
         text->font = m_font;
         text->color = RAYWHITE;
@@ -20,38 +23,28 @@ SettingsHomeScreen::SettingsHomeScreen(PermissionCheck hasPermission)
     m_subtitle->color = Color{159, 174, 196, 255};
     const auto back = [this] { m_pageOpen = false; };
     std::vector<SettingsActionRow::Action> actions;
-    if (hasPermission("manage_users"))
+    if (hasPermission("manage_users") || hasPermission("manage_roles") || hasPermission("manage_permissions"))
         actions.push_back({
-            "Empleados, roles y permisos", [this, back] {
+            nexo->text("settings.staff"), [this, back] {
                 open(std::make_shared<StaffSettingsScreen>(back));
             }
         });
     if (hasPermission("configure_business")) {
         actions.push_back({
-            "Negocio", [this, back] {
-                open(std::make_shared<SettingsWorkspaceScreen>(
-                    SettingsWorkspaceScreen::Kind::Business, back));
-            }
-        });
-        actions.push_back({
-            "Plantilla del ticket", [this, back] {
-                open(std::make_shared<SettingsWorkspaceScreen>(
-                    SettingsWorkspaceScreen::Kind::Template, back));
+            nexo->text("settings.business_short"), [this, back] {
+                open(std::make_shared<BusinessSettingsScreen>(back));
             }
         });
     }
-    if (hasPermission("configure_business") || hasPermission("manage_cash"))
-        actions.push_back({
-            "Información y estado", [this, back] {
-                open(std::make_shared<SettingsWorkspaceScreen>(
-                    SettingsWorkspaceScreen::Kind::Status, back));
+    if (hasPermission("edit_ticket_template")) actions.push_back({
+            nexo->text("settings.template"), [this, back] {
+                open(std::make_shared<TicketTemplateSettingsScreen>(back));
             }
         });
-    if (hasPermission("view_reports") || hasPermission("manage_cash"))
+    if (hasPermission("configure_printer") || hasPermission("manage_cash"))
         actions.push_back({
-            "Facturación y cierre", [this, back] {
-                open(std::make_shared<SettingsWorkspaceScreen>(
-                    SettingsWorkspaceScreen::Kind::History, back));
+            nexo->text("settings.status"), [this, back] {
+                open(std::make_shared<SystemStatusSettingsScreen>(back));
             }
         });
     const auto split = std::min<std::size_t>(3, actions.size());

@@ -31,6 +31,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 install(TARGETS ${PROJECT_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        RUNTIME_DEPENDENCY_SET nexobar_runtime_dependencies
+        RUNTIME DESTINATION . COMPONENT NexoBarRuntime
+        LIBRARY DESTINATION . COMPONENT NexoBarRuntime
+        ARCHIVE DESTINATION lib COMPONENT NexoBarDevelopment
 )

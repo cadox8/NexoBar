@@ -7,11 +7,10 @@
 #include <utility>
 #include <vector>
 
-MessageScreen::MessageScreen(std::string title, std::vector<std::string> errors, std::vector<std::string> warnings, std::string errorPrefix, std::string warningPrefix, FontPtr font)
+MessageScreen::MessageScreen(std::string title, std::vector<std::string> errors, std::vector<std::string> warnings, std::string warningPrefix, FontPtr font)
     : m_title(std::move(title))
       , m_errors(std::move(errors))
       , m_warnings(std::move(warnings))
-      , m_errorPrefix(std::move(errorPrefix))
       , m_warningPrefix(std::move(warningPrefix))
       , m_font(std::move(font)) {}
 
@@ -45,7 +44,7 @@ void MessageScreen::draw() {
             lines.emplace_back(std::move(line), color);
     };
     for (const std::string& error: m_errors)
-        appendWrapped(m_errorPrefix + error, Color{255, 170, 160, 255});
+        appendWrapped(error, Color{255, 170, 160, 255});
     for (const std::string& warning: m_warnings)
         appendWrapped(m_warningPrefix + warning, Color{255, 205, 125, 255});
 

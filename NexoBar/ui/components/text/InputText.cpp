@@ -58,10 +58,19 @@ void InputText::setText(std::string value) {
     m_cursor = text.size();
     if (onChange)onChange(text);
 }
+void InputText::insertVirtual(const char value) {
+    if (!enabled || utf8Count(text) >= maxLength) return;
+    text.insert(m_cursor, 1, value); ++m_cursor; if (onChange) onChange(text);
+}
+void InputText::backspaceVirtual() {
+    if (!enabled || m_cursor == 0) return;
+    const auto position = previous(text, m_cursor); text.erase(position, m_cursor-position); m_cursor=position;
+    if (onChange) onChange(text);
+}
 
 void InputText::update(float deltaSeconds) {
     m_caretTime += deltaSeconds;
-    if (UIInput::pointerPressed()) {
+    if (UIInput::pointerPressed() && !UIInput::clicksSuppressed()) {
         focused = enabled && CheckCollisionPointRec(UIInput::pointerPosition(), m_area);
         if (focused) {
             const float lineHeight = float(fontSize) * 1.25f;
@@ -131,6 +140,7 @@ void InputText::update(float deltaSeconds) {
 
     int codepoint = GetCharPressed();
     while (codepoint > 0) {
+        UIInput::markPhysicalKeyboard();
         if (codepoint == 10 || codepoint == 13) {
             if (multiline&& utf8Count(text) < maxLength) {
                 text.insert(m_cursor, 1, '\n');
@@ -200,8 +210,11 @@ void InputText::draw() {
 
     if (focused&& std::fmod(m_caretTime, 1.f) < .5f) {
         const float caretX = m_area.x + 8 + caretOffset - m_textScroll;
-        const float caretY = m_area.y + (multiline ? 5.f + caretRow * lineHeight : 6.f);
-        DrawLine(int(caretX), int(caretY), int(caretX), int(caretY + lineHeight - 2), textColor);
+        const float textY = m_area.y + (multiline ? 5.f + caretRow * lineHeight
+                                                   : (m_area.height - fontSize) * .5f);
+        const float caretHeight = std::max(8.f, static_cast<float>(fontSize));
+        DrawLineEx({caretX, textY + 1.f}, {caretX, textY + caretHeight - 1.f}, 1.f,
+                   textColor);
     }
     UI::endScissor();
 }

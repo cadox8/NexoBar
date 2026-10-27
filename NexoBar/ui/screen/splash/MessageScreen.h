@@ -9,7 +9,7 @@
 class MessageScreen final : public IScreen {
 public:
     MessageScreen(std::string title, std::vector<std::string> errors, std::vector<std::string> warnings,
-                  std::string errorPrefix, std::string warningPrefix, FontPtr font = {});
+                  std::string warningPrefix, FontPtr font = {});
 
     void update(float deltaSeconds) override;
 
@@ -19,7 +19,6 @@ private:
     std::string m_title;
     std::vector<std::string> m_errors;
     std::vector<std::string> m_warnings;
-    std::string m_errorPrefix;
     std::string m_warningPrefix;
     FontPtr m_font;
 };

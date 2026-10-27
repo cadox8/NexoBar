@@ -1,91 +1,65 @@
 #include "SideMenuScreen.h"
+
 #include "../../../NexoBar.h"
 
 #include <algorithm>
-#include <cmath>
 
-namespace {
-    class IconAction final : public IComponent {
-    public:
-        explicit IconAction(bool sales, std::function<void()> action)
-            : m_sales(sales), m_action(std::move(action)) {
-            if (m_sales)
-                m_icon = NexoBarImp::get()->assets().getTexture("icon-cart");
+SideMenuScreen::SideMenuScreen(std::vector<Item> items)
+    : m_background(std::make_shared<BoxComponent>(Color{20, 37, 58, 255})),
+      m_items(std::move(items)) {
+    NexoBarImp nexo;
+    for (const auto& item : m_items) {
+        auto button = std::make_shared<NavigationButton>(item.label, item.action);
+        if (!item.icon.empty()) button->image = nexo->assets().getTexture(item.icon);
+        button->font = nexo->defaultFont();
+        button->fontSize = 0;
+        button->text.clear();
+        button->enabled = item.enabled;
+        button->roundness = .18f;
+        button->padding = LayoutInsets::all(13.f);
+        button->background = Color{32, 54, 82, 255};
+        button->hoverBackground = Color{47, 72, 105, 255};
+        button->pressedBackground = Color{26, 45, 70, 255};
+        if (item.id == "logout") {
+            button->background = Color{151, 55, 61, 255};
+            button->hoverBackground = Color{183, 68, 75, 255};
+            button->pressedBackground = Color{124, 43, 49, 255};
+            button->selectedBackground = button->background;
         }
+        m_buttons.push_back(std::move(button));
+    }
+    if (!m_items.empty()) select(m_items.front().id);
+}
 
-        void update(float) override {
-            const auto p = UIInput::pointerPosition();
-            m_hover = enabled && CheckCollisionPointRec(p, m_area);
-            if (enabled && !UIInput::clicksSuppressed() && m_hover &&
-                UIInput::pointerReleased() && m_action)
-                m_action();
-        }
-
-        void draw() override {
-            DrawRectangleRounded(m_area, .24f, 6, m_hover ? Color{.r = 57, .g = 73, .b = 94, .a = 255} : Color{.r = 39, .g = 50, .b = 66, .a = 255});
-            const float cx = m_area.x + m_area.width * .5f, cy = m_area.y + m_area.height * .5f, s = std::min(m_area.width, m_area.height);
-            const auto ink = RAYWHITE;
-            if (m_sales) {
-                if (m_icon && m_icon->id) {
-                    const float side = s * .72f;
-                    const Rectangle src{
-                        0, 0, static_cast<float>(m_icon->width),
-                        static_cast<float>(m_icon->height)
-                    };
-                    const Rectangle dst{cx - side * .5f, cy - side * .5f, side, side};
-                    DrawTexturePro(*m_icon, src, dst, {0, 0}, 0, WHITE);
-                }
-            } else {
-                DrawCircleLines(int(cx), int(cy), s * .18f, ink);
-                DrawCircleLines(int(cx), int(cy), s * .065f, ink);
-                for (int i = 0; i < 8; ++i) {
-                    const float a = i * 3.14159265f / 4;
-                    DrawLineEx({cx + std::cos(a) * s * .2f, cy + std::sin(a) * s * .2f},
-                               {cx + std::cos(a) * s * .27f, cy + std::sin(a) * s * .27f},
-                               2, ink);
-                }
-            }
-        }
-
-    private:
-        bool m_sales, m_hover = false;
-        std::function<void()> m_action;
-        TexturePtr m_icon;
-    };
-} // namespace
-
-SideMenuScreen::SideMenuScreen(std::function<void()> onSales, std::function<void()> onSettings, const bool showSettings) : m_showSettings(showSettings) {
-    m_root = std::make_shared<BlockComponent>(LayoutAxis::Vertical,
-                                              Color{22, 28, 38, 255});
-    // Icon actions are mounted by the screen directly; the 44 px rail remains
-    // independent of content width.
-    m_iconSales = std::make_shared<IconAction>(true, std::move(onSales));
-    m_iconSettings = std::make_shared<IconAction>(false, std::move(onSettings));
+void SideMenuScreen::select(const std::string& id) {
+    m_selected = id;
+    for (std::size_t i = 0; i < m_items.size(); ++i)
+        m_buttons[i]->selected = m_items[i].id == id;
 }
 
 void SideMenuScreen::layout() {
-    const float side = std::max(
-        0.f, std::min({44.f, m_area.width - 8.f, (m_area.height - 12.f) * .5f}));
-    m_iconSales->area(
-        {m_area.x + (m_area.width - side) * .5f, m_area.y + 4.f, side, side});
-    m_iconSettings->area({
-        m_area.x + (m_area.width - side) * .5f,
-        m_area.y + m_area.height - side - 4.f, side, side
-    });
-    m_root->area(m_area);
+    m_background->area(m_area);
+    const float inset = 6.f;
+    const float gap = 8.f;
+    const float height = std::max(42.f, m_area.width - inset * 2.f);
+    float top = m_area.y + inset;
+    const auto bottomCount = static_cast<float>(std::ranges::count(m_items, true, &Item::bottom));
+    float bottom = m_area.y + m_area.height - inset - bottomCount * height - std::max(0.f, bottomCount - 1.f) * gap;
+    for (std::size_t i = 0; i < m_items.size(); ++i) {
+        const float y = m_items[i].bottom ? bottom : top;
+        m_buttons[i]->area({m_area.x + inset, y, std::max(0.f, m_area.width - inset * 2.f), height});
+        if (m_items[i].bottom) bottom += height + gap;
+        else top += height + gap;
+    }
 }
 
-void SideMenuScreen::update(float dt) {
+void SideMenuScreen::update(const float deltaSeconds) {
     layout();
-    m_iconSales->update(dt);
-    if (m_showSettings)
-        m_iconSettings->update(dt);
+    for (const auto& button : m_buttons) button->update(deltaSeconds);
 }
 
 void SideMenuScreen::draw() {
     layout();
-    m_root->draw();
-    m_iconSales->draw();
-    if (m_showSettings)
-        m_iconSettings->draw();
+    m_background->draw();
+    for (const auto& button : m_buttons) button->draw();
 }

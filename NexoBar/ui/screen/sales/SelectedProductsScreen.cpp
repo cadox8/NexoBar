@@ -4,6 +4,7 @@
 #include "printer/PrinterDiagnostics.h"
 #include "printer/TicketPrinter.h"
 #include "template/TicketTemplate.h"
+#include "database/hospitality/HospitalityDatabase.h"
 
 #include <raylib.h>
 
@@ -56,8 +57,8 @@ SelectedProductsScreen::SelectedProductsScreen(
     NexoBarImp app;
 
     m_font = app->defaultFont();
-    m_decimalSeparator = app->text("number.decimal_separator", ",");
-    m_title->text = app->text("lists.title", "Ticket");
+    m_decimalSeparator = app->text("number.decimal_separator");
+    m_title->text = app->text("lists.title");
     m_title->font = m_font;
     m_title->fontSize = 30;
     m_title->color = RAYWHITE;
@@ -65,7 +66,7 @@ SelectedProductsScreen::SelectedProductsScreen(
     m_totalLabel->font = m_font;
     m_totalLabel->fontSize = 24;
     m_totalLabel->color = Accent;
-    m_totalLabel->horizontalAlignment = TextHorizontalAlignment::Left;
+    m_totalLabel->horizontalAlignment = TextHorizontalAlignment::Center;
     m_totalLabel->verticalAlignment = TextVerticalAlignment::Center;
     m_manualAmountLabel->font = m_font;
     m_manualAmountLabel->fontSize = 20;
@@ -75,16 +76,17 @@ SelectedProductsScreen::SelectedProductsScreen(
 
     m_printButton->font = m_font;
     m_printButton->fontSize = 18;
-    m_printButton->text = app->text("lists.print", "Imprimir");
+    m_printButton->text = app->text("lists.print");
     m_printButton->background = Color{170, 235, 190, 255};
     m_printButton->hoverBackground = Color{184, 245, 202, 255};
     m_printButton->pressedBackground = Color{150, 218, 172, 255};
     m_printButton->textColor = BLACK;
     m_printButton->onClick([&] { printTicket(); });
+    m_printButton->enabled = m_state->hasPermission("print_ticket");
 
     m_drawerButton->font = m_font;
     m_drawerButton->fontSize = 16;
-    m_drawerButton->text = app->text("lists.open_drawer", "");
+    m_drawerButton->text = app->text("lists.open_drawer");
     m_drawerButton->background = Color{225, 190, 125, 255};
     m_drawerButton->hoverBackground = Color{238, 207, 148, 255};
     m_drawerButton->pressedBackground = Color{204, 166, 101, 255};
@@ -95,10 +97,11 @@ SelectedProductsScreen::SelectedProductsScreen(
         if (!printer.openDrawer(error, *app->i18n()))
             NEXO_ERROR(LogModule::Printer) << "Could not open cash drawer: " << error;
     });
+    m_drawerButton->enabled = m_state->hasPermission("open_drawer");
 
     m_addManualButton->font = m_font;
     m_addManualButton->fontSize = 18;
-    m_addManualButton->text = app->text("lists.add_manual", "Añadir importe");
+    m_addManualButton->text = app->text("lists.add_manual");
     m_addManualButton->background = Color{.r = 255, .g = 218, .b = 142, .a = 255};
     m_addManualButton->hoverBackground =
             Color{.r = 255, .g = 228, .b = 162, .a = 255};
@@ -107,7 +110,7 @@ SelectedProductsScreen::SelectedProductsScreen(
     m_addManualButton->textColor = BLACK;
     m_addManualButton->onClick([&] { appendManualAmount(); });
 
-    const std::string backspace = app->text("lists.backspace", "DEL");
+    const std::string backspace = app->text("lists.backspace");
     const std::string decimalSeparator = m_decimalSeparator;
     const std::string keypadLabels[] = {
         "1", "2", "3", "4",
@@ -191,15 +194,24 @@ void SelectedProductsScreen::layout() {
         .height = std::max(0.f, keypadY - listTop - keyGap)
     });
 
-    m_totalLabel->text = (app ? app->text("receipt.total", "TOTAL") : "TOTAL") +
+    m_totalLabel->text = app->text("receipt.total") +
                          ": " + m_state->formatPrice(m_state->total());
-    m_totalLabel->fontSize = std::clamp(25.f * fontScale, 20.f, 36.f);
-    m_totalLabel->area({
-        .x = listX + unit * .018f,
-        .y = totalY,
-        .width = listWidth * .46f - unit * .036f,
-        .height = totalHeight
-    });
+    const Rectangle totalArea{
+        .x = listX,
+        .y = totalY + totalHeight * .12f,
+        .width = listWidth * .46f,
+        .height = totalHeight * .76f
+    };
+    const float preferredTotalSize = std::clamp(25.f * fontScale, 20.f, 36.f);
+    const Vector2 measuredTotal = MeasureTextEx(*m_font, m_totalLabel->text.c_str(),
+                                                preferredTotalSize, 1.f);
+    const float widthScale = (totalArea.width - 12.f) /
+                             std::max(1.f, measuredTotal.x);
+    const float heightScale = (totalArea.height - 8.f) /
+                              std::max(1.f, measuredTotal.y);
+    m_totalLabel->fontSize = std::max(
+        6.f, preferredTotalSize * std::min({1.f, widthScale, heightScale}));
+    m_totalLabel->area(totalArea);
     m_printButton->area({
         .x = listX + listWidth * .75f,
         .y = totalY + totalHeight * .12f,
@@ -219,10 +231,7 @@ void SelectedProductsScreen::updateManualAmountDisplay() {
     const std::string amount = m_manualAmountInput.empty()
                                    ? "0" + m_decimalSeparator + "00"
                                    : m_manualAmountInput;
-    m_manualAmountLabel->text =
-            app
-                ? app->text("lists.amount_prefix", "Importe: ") + amount
-                : "Importe: " + amount;
+    m_manualAmountLabel->text = app->text("lists.amount_prefix") + amount;
 }
 
 void SelectedProductsScreen::appendManualKey(const std::string& key) {
@@ -271,15 +280,14 @@ void SelectedProductsScreen::appendManualAmount() {
     const std::int64_t price = whole * 100 + cents;
     if (price <= 0)
         return;
-    const std::string name =
-            app ? app->text("lists.manual_amount", "Manual") : "Manual";
+    const std::string name = app->text("lists.manual_amount");
     std::int64_t manualId = -1;
     for (const auto& product: m_state->products)
         if (product.id <= manualId)
             manualId = product.id - 1;
     const std::int64_t taxId =
             m_state->taxes.empty() ? 0 : m_state->taxes.front().id;
-    m_state->products.push_back({manualId, -1, name, price, taxId, true});
+    m_state->products.push_back({manualId, -1, name, price, taxId});
     m_state->quantities.push_back(0);
     m_state->addProduct(m_state->products.size() - 1);
     m_manualAmountInput.clear();
@@ -290,46 +298,47 @@ void SelectedProductsScreen::printTicket() {
     NexoBarImp app;
 
     try {
-        if (!m_pendingPrint) {
-            std::vector<nexobar::SaleItem> items;
-            items.reserve(m_state->selectedOrder.size());
-            for (const std::size_t index: m_state->selectedOrder) {
-                if (index >= m_state->products.size() ||
-                    index >= m_state->quantities.size() ||
-                    m_state->quantities[index] <= 0)
-                    continue;
-                const auto& product = m_state->products[index];
-                const auto tax = std::ranges::find(m_state->taxes, product.taxId,
-                                                   &ProductState::Tax::id);
-                if (tax == m_state->taxes.end())
-                    throw std::runtime_error("No se encuentra el impuesto de " +
-                                             product.name + ".");
-                nexobar::SaleItem item;
-                if (product.id >= 0)
-                    item.productId = nexobar::ProductId{product.id};
-                item.description = product.name;
-                item.quantity =
-                        static_cast<nexobar::QuantityMilli>(m_state->quantities[index]) *
-                        1000;
-                item.unitPrice = product.priceMinor;
-                item.taxRate = static_cast<nexobar::BasisPoints>(tax->rate);
-                items.push_back(std::move(item));
-            }
-            if (items.empty())
-                return;
-            nexobar::SaleService service(*app->database());
-            m_pendingPrint = service.issue(app->business(),
-                                           nexobar::UserId{m_state->userId}, items);
-            // The sale is already immutable at this point. Clear the editable order
-            // even if the physical printer fails.
-            m_state->clearOrder();
+        std::vector<nexobar::SaleItem> items;
+        items.reserve(m_state->selectedOrder.size());
+        for (const std::size_t index: m_state->selectedOrder) {
+            if (index >= m_state->products.size() ||
+                index >= m_state->quantities.size() ||
+                m_state->quantities[index] <= 0)
+                continue;
+            const auto& product = m_state->products[index];
+            const auto tax = std::ranges::find(m_state->taxes, product.taxId,
+                                               &ProductState::Tax::id);
+            if (tax == m_state->taxes.end())
+                throw nexobar::HospitalityError("errors.product_tax_missing");
+            nexobar::SaleItem item;
+            if (product.id >= 0)
+                item.productId = nexobar::ProductId{product.id};
+            item.description = product.name;
+            item.quantity =
+                    static_cast<nexobar::QuantityMilli>(m_state->quantities[index]) *
+                    1000;
+            item.unitPrice = product.priceMinor;
+            item.taxRate = static_cast<nexobar::BasisPoints>(tax->rate);
+            items.push_back(std::move(item));
         }
+        if (items.empty())
+            return;
+        nexobar::SaleService service(*app->database(), [app](const std::string_view key) {
+            return app->i18n()->get(key);
+        });
+        const nexobar::IssuedSale sale = service.issue(
+            app->business(), nexobar::UserId{m_state->userId}, items);
+
+        // Once persisted, the sale is immutable and the editable list belongs to
+        // the next customer. A missing printer must never make a later sale reuse
+        // this ticket or its amount.
+        m_state->clearOrder();
 
         const std::filesystem::path templatePath =
                 std::filesystem::path(GetApplicationDirectory()) / "resources" /
                 "tickets" / "ticket.tpl";
         const auto result = TicketTemplate::printFile(
-            templatePath.string(), m_pendingPrint->ticket, m_pendingPrint->lines,
+            templatePath.string(), sale.ticket, sale.lines,
             m_state->businessName, *app->i18n(), {},
             PrinterDiagnostics::detectedReceiptLayout());
         if (app->ticketDebugMode()) {
@@ -341,7 +350,6 @@ void SelectedProductsScreen::printTicket() {
             NEXO_ERROR(LogModule::Printer) << "Ticket print failed: " << result.error;
             return;
         }
-        m_pendingPrint.reset();
     } catch (const std::exception& error) {
         NEXO_ERROR(LogModule::Core)
                 << "Could not generate the receipt: " << error.what();
@@ -360,16 +368,13 @@ void SelectedProductsScreen::rebuildRows() {
             continue;
         const auto& product = m_state->products[index];
         const float unit = std::max(1.f, std::min(m_area.width, m_area.height));
-        const float fontSize = std::clamp(unit * .044f, 14.f, 20.f);
+        const float fontSize = std::clamp(unit * .052f, 16.f, 23.f);
         const float gap = std::max(2.f, unit * .012f);
         auto row = std::make_shared<BlockComponent>(LayoutAxis::Horizontal,
                                                     Color{36, 44, 57, 255});
         row->roundness = .10f;
-        row->content.gap(gap).padding(LayoutInsets::symmetric(gap, gap * .45f));
-        std::string quantityFormat =
-                app
-                    ? app->text("lists.quantity_format", "{name} (x{quantity})")
-                    : "{name} (x{quantity})";
+        row->content.gap(gap).padding(LayoutInsets::all(std::max(6.f, gap)));
+        std::string quantityFormat = app->text("lists.quantity_format");
         const auto replace = [&quantityFormat](const std::string& key,
                                                const std::string& value) {
             const auto pos = quantityFormat.find(key);
@@ -392,10 +397,10 @@ void SelectedProductsScreen::rebuildRows() {
         price->color = Accent;
         price->horizontalAlignment = TextHorizontalAlignment::Right;
         price->verticalAlignment = TextVerticalAlignment::Center;
-        auto removeButton = std::make_shared<Button>("X");
+        auto removeButton = std::make_shared<Button>(app->text("common.remove_symbol"));
         removeButton->font = m_font;
-        removeButton->fontSize = static_cast<int>(std::max(15.f, fontSize - 2.f));
-        removeButton->padding = LayoutInsets::symmetric(gap * .4f, gap * .3f);
+        removeButton->fontSize = static_cast<int>(std::clamp(fontSize - 4.f, 12.f, 16.f));
+        removeButton->padding = LayoutInsets::all(std::max(3.f, gap * .45f));
         removeButton->background = Color{71, 48, 52, 255};
         removeButton->hoverBackground = removeButton->background;
         removeButton->pressedBackground = Color{90, 58, 62, 255};
@@ -406,10 +411,12 @@ void SelectedProductsScreen::rebuildRows() {
         row->add(label, LayoutSize::fill(), LayoutSize::fill());
         row->add(price, LayoutSize::px(std::clamp(unit * .19f, 60.f, 95.f)),
                  LayoutSize::fill());
-        row->add(removeButton, LayoutSize::px(std::clamp(unit * .105f, 32.f, 40.f)),
+        row->add(removeButton, LayoutSize::px(std::clamp(unit * .085f, 28.f, 35.f)),
                  LayoutSize::fill());
-        m_items->content.add(row, LayoutSize::fill(),
-                             LayoutSize::px(std::clamp(unit * .125f, 42.f, 60.f)));
+        m_items->content.add(
+            row, LayoutSize::fill(),
+            LayoutSize::px(std::clamp(unit * .14f, 50.f, 68.f)),
+            LayoutInsets::symmetric(std::max(6.f, unit * .015f), 4.f));
     }
 }
 
@@ -478,7 +485,8 @@ void SelectedProductsScreen::draw() {
         8, Color{42, 51, 66, 255});
     const float totalBlockX = m_area.x + inset;
     const float totalBlockWidth = (m_area.width - 2.f * inset) * .46f;
-    DrawRectangleRounded({totalBlockX, totalY, totalBlockWidth, totalHeight},
+    DrawRectangleRounded({totalBlockX, totalY + totalHeight * .12f,
+                          totalBlockWidth, totalHeight * .76f},
                          .16f, 8, Color{42, 51, 66, 255});
     m_totalLabel->draw();
     m_manualAmountLabel->draw();
@@ -500,14 +508,15 @@ void SelectedProductsScreen::draw() {
         NexoBarImp app;
         DrawTextEx(
             *m_font,
-            app->text("lists.preview_title", "Vista previa del ticket").c_str(),
+            app->text("lists.preview_title").c_str(),
             {panel.x + 18, panel.y + 16}, 22, 1, RAYWHITE);
         const Rectangle close{
             panel.x + panel.width - 48.f, panel.y + 10.f, 36.f,
             36.f
         };
         DrawRectangleRounded(close, .2f, 6, Color{75, 48, 52, 255});
-        DrawTextEx(*m_font, "X", {close.x + 11, close.y + 7}, 20, 1, RAYWHITE);
+        const std::string closeSymbol = app->text("common.close_symbol");
+        DrawTextEx(*m_font, closeSymbol.c_str(), {close.x + 11, close.y + 7}, 20, 1, RAYWHITE);
         const Rectangle viewport{
             panel.x + 16, panel.y + 56, panel.width - 32,
             panel.height - 72

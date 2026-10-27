@@ -1,8 +1,11 @@
 #pragma once
 
+#include "i18n/I18n.h"
+
 #include <string>
 #include <optional>
 #include <vector>
+#include <cstdint>
 
 #include "ReceiptLayout.h"
 
@@ -12,13 +15,19 @@ namespace platform {
 
 struct PrinterInfo {
     std::string name;
-    bool isDefault = false;
-    std::string driver;
-    std::string port;
+    std::string manufacturer;
+    std::string model;
+    std::string serial;
+    std::uint16_t vendorId = 0;
+    std::uint16_t productId = 0;
+    std::uint8_t bus = 0;
+    std::uint8_t address = 0;
+    std::uint8_t interfaceNumber = 0;
+    std::uint8_t outputEndpoint = 0;
     int paperWidthMm = 0;
     int paperHeightMm = 0;
     int dpi = 0;
-    std::string commandSet = "ESC/POS";
+    std::string commandSet;
 };
 
 struct PrinterCommands {
@@ -30,11 +39,10 @@ struct PrinterCommands {
 // Device discovery and explicit hardware checks live outside the print transport.
 class PrinterDiagnostics {
 public:
-    static std::vector<PrinterInfo> enumerateUsbPrinters(std::string& error);
+    static std::vector<PrinterInfo> enumerateUsbPrinters(std::string& error,
+                                                          const platform::I18n* i18n = nullptr);
 
-    static std::optional<PrinterInfo> selectedUsbPrinter(std::string& error);
-
-    static std::string defaultUsbPrinterName(std::string& error);
+    static std::optional<PrinterInfo> selectedUsbPrinter(std::string& error, const platform::I18n* i18n = nullptr);
 
     static PrinterCommands commandsFor(const PrinterInfo& printer);
 

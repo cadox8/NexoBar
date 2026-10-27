@@ -1,23 +1,33 @@
 #pragma once
 
-#include "../../components/layout/BlockComponent.h"
+#include "../../components/box/BoxComponent.h"
+#include "../../components/navigation/NavigationButton.h"
 #include "../IScreen.h"
 
 #include <functional>
+#include <string>
+#include <vector>
 
 class SideMenuScreen final : public IScreen {
 public:
-    SideMenuScreen(std::function<void()> onSales,
-                   std::function<void()> onSettings, bool showSettings);
+    struct Item {
+        std::string id;
+        std::string label;
+        std::string icon;
+        std::function<void()> action;
+        bool bottom = false;
+        bool enabled = true;
+    };
 
+    explicit SideMenuScreen(std::vector<Item> items);
+    void select(const std::string& id);
     void update(float deltaSeconds) override;
-
     void draw() override;
 
 private:
     void layout();
-
-    BlockComponentPtr m_root;
-    ComponentPtr m_iconSales, m_iconSettings;
-    bool m_showSettings = false;
+    BoxComponentPtr m_background;
+    std::vector<Item> m_items;
+    std::vector<NavigationButtonPtr> m_buttons;
+    std::string m_selected;
 };

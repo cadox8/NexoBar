@@ -54,5 +54,4 @@ private:
     std::string m_ticketPreview;
     float m_ticketPreviewScroll = 0.f;
     bool m_ticketPreviewOpen = false;
-    std::optional<nexobar::IssuedSale> m_pendingPrint;
 };

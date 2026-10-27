@@ -6,14 +6,18 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace platform {
-    /// Loads a JSON translation catalog, choosing the requested/system locale and falling back to English.
+    /// Loads a JSON translation catalog, choosing the requested/system locale and falling back to Spanish.
     class I18n {
     public:
         PLATFORM_API explicit I18n(const std::filesystem::path& catalogDirectory,
                                    std::string requestedLocale = systemLanguage(),
-                                   std::string fallbackLocale = "en-US");
+                                   std::string fallbackLocale = "es-ES");
+        PLATFORM_API explicit I18n(const std::unordered_map<std::string, std::string>& embeddedCatalogs,
+                                   std::string requestedLocale = systemLanguage(),
+                                   std::string fallbackLocale = "es-ES");
         PLATFORM_API ~I18n();
 
         PLATFORM_API I18n(I18n&&) noexcept;

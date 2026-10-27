@@ -17,6 +17,8 @@ public:
     std::function<void(const std::string &)> onSubmit;
 
     void setText(std::string value);
+    void insertVirtual(char value);
+    void backspaceVirtual();
 
     void update(float deltaSeconds) override;
 

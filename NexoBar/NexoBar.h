@@ -10,12 +10,15 @@
 #include "manager/ScreenManager.h"
 
 #include <memory>
+#include <exception>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include "database/models/Business.h"
+#include "database/hospitality/Types.h"
+#include <optional>
 
 class NexoBar {
 public:
@@ -29,10 +32,24 @@ public:
 
     void shutdown();
 
+    void showLogin();
+    void openSession(std::int64_t userId);
+    void logout();
+    void closeCurrentBillingDay();
+
+    [[nodiscard]] bool canEnterSession() const noexcept {
+        return m_businessConfigured && m_startupErrors.empty();
+    }
+
     const std::shared_ptr<Nearon::Database>& database() const { return m_database; }
     const platform::I18n* i18n() const noexcept { return m_i18n.get(); }
 
-    std::string text(std::string_view key, std::string_view fallback) const;
+    std::string text(std::string_view key) const;
+
+    // Converts an exception into a localized, user-facing message. Technical
+    // details remain available in the log and are never exposed by this method.
+    std::string userError(const std::exception& error,
+                          std::string_view fallbackKey = "errors.operation_failed") const;
 
     AssetManager& assets() noexcept { return m_assets; }
     FontPtr defaultFont() const noexcept { return m_defaultFont; }
@@ -45,7 +62,10 @@ public:
     void addStartupWarning(std::string message);
 
     const nexobar::Business& business() { return m_business; }
-    void setBusiness(nexobar::Business business) { m_business = std::move(business); }
+    void setBusiness(nexobar::Business business) {
+        m_business = std::move(business);
+        m_businessConfigured = true;
+    }
 
     bool ticketDebugMode() const noexcept {
 #ifndef NDEBUG
@@ -64,6 +84,8 @@ public:
     }
 
 private:
+    void showStartupErrors();
+
     std::unique_ptr<platform::I18n> m_i18n;
     std::shared_ptr<Nearon::Database> m_database;
     std::unique_ptr<Nearon::AutomaticBackup> m_backups;
@@ -74,6 +96,8 @@ private:
     std::vector<std::string> m_startupWarnings;
     bool m_windowInitialized = false;
     bool m_audioInitialized = false;
+    bool m_businessConfigured = false;
+    std::optional<nexobar::UserId> m_currentUserId;
 #ifndef NDEBUG
     bool m_ticketDebugMode = true;
 #else
@@ -90,7 +114,6 @@ public:
     virtual ~NexoBarImp() = default;
 
     static void set(NexoBar* api) { m_nexo = api; }
-    static NexoBar* get() { return m_nexo; }
     explicit operator NexoBar*() const { return m_nexo; }
     NexoBar* operator->() const { return m_nexo; }
     explicit operator bool() const { return m_nexo != nullptr; }

@@ -1,0 +1,62 @@
+name: Build and publish release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag (vX.Y.Z)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            preset: ci-windows
+          - os: ubuntu-latest
+            platform: linux-x64
+            preset: ci-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libasound2-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+      - uses: lukka/get-cmake@latest
+      - uses: lukka/run-vcpkg@v11
+      - uses: lukka/run-cmake@v10
+        with:
+          configurePreset: ${{ matrix.preset }}
+          buildPreset: ${{ matrix.preset }}
+          testPreset: ${{ matrix.preset }}
+      - name: Install package tree
+        run: cmake --install build --prefix package
+      - name: Create archive
+        shell: bash
+        run: cmake -E tar cfv "NexoBar-${{ matrix.platform }}.zip" --format=zip package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NexoBar-${{ matrix.platform }}
+          path: NexoBar-${{ matrix.platform }}.zip
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: NexoBar-*
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: NexoBar-*.zip

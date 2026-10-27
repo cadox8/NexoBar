@@ -1,19 +1,33 @@
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#ifdef NOCLIPBOARD
+#undef NOCLIPBOARD
+#endif
+#include <windows.h>
+#endif
+
 #include "MenuBase.h"
 
 #include <ftxui/component/component.hpp>
+#include <ftxui/component/event.hpp>
 #include <ftxui/dom/elements.hpp>
 
 #include <limits>
 #include <sstream>
 #include <utility>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#endif
-
 using namespace ftxui;
+
+const std::string& MenuBase::invalidInputMessage() {
+    static const std::string value = "Invalid input.";
+    return value;
+}
+
+const std::string& MenuBase::noOptionsMessage() {
+    static const std::string value = "No options are available.";
+    return value;
+}
 
 void MenuBase::beginMenu(std::string title, std::string footerLabel, int width) {
     title_ = std::move(title);
@@ -79,12 +93,12 @@ void MenuBase::switchPage(const Page page) {
 bool MenuBase::copyResult() {
 #ifdef _WIN32
     if (result_.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
-        feedback_ = "The result is too large to copy.";
+        feedback_ = "The result could not be copied to the clipboard.";
         return false;
     }
 
     if (!OpenClipboard(nullptr)) {
-        feedback_ = "Could not open the clipboard.";
+        feedback_ = "The result could not be copied to the clipboard.";
         return false;
     }
 
@@ -93,7 +107,7 @@ bool MenuBase::copyResult() {
         static_cast<int>(result_.size()), nullptr, 0);
     if (characterCount == 0 && !result_.empty()) {
         CloseClipboard();
-        feedback_ = "Could not prepare text for copying.";
+        feedback_ = "The result could not be copied to the clipboard.";
         return false;
     }
 
@@ -101,7 +115,7 @@ bool MenuBase::copyResult() {
     HGLOBAL clipboardData = GlobalAlloc(GMEM_MOVEABLE, byteCount);
     if (!clipboardData) {
         CloseClipboard();
-        feedback_ = "Could not allocate clipboard memory.";
+        feedback_ = "The result could not be copied to the clipboard.";
         return false;
     }
 
@@ -109,7 +123,7 @@ bool MenuBase::copyResult() {
     if (!wideText) {
         GlobalFree(clipboardData);
         CloseClipboard();
-        feedback_ = "Could not access the clipboard.";
+        feedback_ = "The result could not be copied to the clipboard.";
         return false;
     }
 
@@ -121,7 +135,7 @@ bool MenuBase::copyResult() {
             GlobalUnlock(clipboardData);
             GlobalFree(clipboardData);
             CloseClipboard();
-            feedback_ = "Could not prepare text for copying.";
+            feedback_ = "The result could not be copied to the clipboard.";
             return false;
         }
     }
@@ -131,12 +145,12 @@ bool MenuBase::copyResult() {
     if (!EmptyClipboard() || !SetClipboardData(CF_UNICODETEXT, clipboardData)) {
         GlobalFree(clipboardData);
         CloseClipboard();
-        feedback_ = "Could not copy the result.";
+        feedback_ = "The result could not be copied to the clipboard.";
         return false;
     }
 
     CloseClipboard();
-    feedback_ = "Copied to clipboard.";
+    feedback_ = "Copied to the clipboard.";
     return true;
 #else
     feedback_ = "Clipboard access is only available on Windows.";
@@ -211,7 +225,7 @@ Component MenuBase::getComponent() {
                    text(" "),
                    footerMenu->Render(),
                    separator(),
-                   text("Up/Down: Navigate | Enter: Select | Esc: " + footer_label_)
+                   text("Up/Down: navigate | Enter: select | Esc: " + footer_label_)
                        | dim | center
                }) | border | size(WIDTH, EQUAL, width_) | center;
     });
@@ -223,7 +237,7 @@ Component MenuBase::getComponent() {
         }
     };
     auto input = Input(&input_, "Enter a value...", std::move(inputOptions));
-    auto submit = Button("Submit", [this] {
+    auto submit = Button("Accept", [this] {
         if (submit_) {
             submit_();
         }
@@ -245,7 +259,7 @@ Component MenuBase::getComponent() {
                    separator(),
                    hbox({submit->Render(), text("  "), cancelPrompt->Render()}) | center,
                    separator(),
-                   text("Esc: Cancel") | dim | center
+                   text("Esc: cancel") | dim | center
                }) | border | size(WIDTH, EQUAL, width_) | center;
     });
 
@@ -278,11 +292,11 @@ Component MenuBase::getComponent() {
                    text(" "),
                    cancelChoice->Render(),
                    separator(),
-                   text("Up/Down: Navigate | Enter: Select | Esc: Back") | dim | center
+                   text("Up/Down: navigate | Enter: select | Esc: Back") | dim | center
                }) | border | size(WIDTH, EQUAL, width_) | center;
     });
 
-    auto copy = Button("Copy to clipboard", [this] {
+    auto copy = Button("Copy", [this] {
         copyResult();
     });
     auto backResult = Button("Back", [this] {
@@ -298,7 +312,7 @@ Component MenuBase::getComponent() {
                    separator(),
                    hbox({copy->Render(), text("  "), backResult->Render()}) | center,
                    separator(),
-                   text("Esc: Back") | dim | center
+                   text("Esc: back") | dim | center
                }) | border | size(WIDTH, EQUAL, width_) | center;
     });
 

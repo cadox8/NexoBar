@@ -29,11 +29,11 @@ NexoBar/
 ## Arranque y servicios
 
 `main.cpp` crea `NexoBar`, registra la instancia en `NexoBarImp` y llama a `run()`. `NexoBar::init()` prepara recursos,
-traducciones, SQLite y copias automáticas. `run()` abre raylib, carga Inter como fuente `default`, crea `ProductState` y monta
-`ProductScreen`.
+traducciones, SQLite y copias automáticas. `run()` abre raylib, carga Inter como fuente `default` y monta splash, estado de carga
+y login. Al elegir usuario se crea `ProductState` y se monta `MainScreen`.
 
-`NexoBarImp` permite a las pantallas acceder a base de datos, traducciones, recursos, negocio y fuente global. Todo control visual
-debe recibir `NexoBarImp::get()->defaultFont()`.
+`NexoBarImp` permite a las pantallas acceder a base de datos, traducciones, recursos, negocio y fuente global. El acceso siempre
+se realiza mediante una instancia local (`NexoBarImp nexo; nexo->defaultFont()`); no existe un getter estático público.
 
 ## Base de datos y ORM
 
@@ -60,9 +60,8 @@ inclúyelo en `Models.h` y en `createTables` dentro de `HospitalityDatabase.cpp`
 
 ## Usuario activo y permisos
 
-`ProductState` carga el primer usuario activo del terminal y guarda `userId` y `roleId`. `hasPermission(key)` consulta
-`permissions` y `role_permissions`. `canOpenSettings()` controla `SideMenuScreen`; sin un permiso de gestión, el icono de ajustes
-no se actualiza ni se dibuja.
+`LoginScreen` muestra los usuarios activos; `ProductState` recibe el usuario elegido y guarda `userId` y `roleId`.
+`hasPermission(key)` consulta `permissions` y `role_permissions`. `MainScreen` habilita cada destino según los permisos efectivos.
 
 | Clave | Uso |
 |---|---|
@@ -99,8 +98,8 @@ documento, consumo, pago y caja; no añadas el método de pago directamente a `T
 
 ## Interfaz y layouts
 
-`ProductScreen` monta cabecera, rail lateral y área de trabajo. Catálogo y pedido siguen vivos durante la navegación.
-`ScreenLayout::setScreen()` sustituye una vista dentro de un slot.
+`MainScreen` monta cabecera, menú lateral y contenido; `ProductScreen` contiene únicamente el área de venta. Catálogo y pedido
+siguen vivos al alternar categorías/productos. `ScreenLayout::setScreen()` sustituye una vista dentro de un slot.
 
 - `LayoutSize::fill(peso)` reparte espacio.
 - `LayoutSize::px(valor)` fija filas compactas.
@@ -116,7 +115,7 @@ SettingsHomeScreen
 ├── StaffSettingsScreen
 │   ├── SettingsWorkspaceScreen(Users)
 │   ├── SettingsWorkspaceScreen(Roles)
-│   └── SettingsWorkspaceScreen(Permissions)
+│   └── RolePermissionsScreen (checkboxes con scroll)
 ├── SettingsWorkspaceScreen(Business)
 ├── SettingsWorkspaceScreen(Template)
 ├── SettingsWorkspaceScreen(Status)

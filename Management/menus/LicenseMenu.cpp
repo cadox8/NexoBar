@@ -7,7 +7,7 @@
 
 void LicenseMenu::init() {
     ManagementImp management;
-    const auto version = "Version: " + management->version().version();
+    const auto version = std::string("Version: ") + management->version().version();
     beginMenu("License management", "Back", 70);
     setHeaderLines([this, version] {
         return std::vector<HeaderLine>{
@@ -18,8 +18,8 @@ void LicenseMenu::init() {
     });
 
     addChoiceAction<License::LicenseType>(
-        "Generate license",
-        "Select license type",
+        "Generate a license",
+        "Select the license type",
         {
             {"Basic", License::LicenseType::Basic},
             {"Standard", License::LicenseType::Standard},
@@ -29,13 +29,13 @@ void LicenseMenu::init() {
         [this](const License::LicenseType& type) {
             License license;
             const std::string generated = license.generate(type);
-            if (generated.empty()) return std::string("Could not generate the license.");
+            if (generated.empty()) return std::string("The license could not be generated.");
             return generated;
         });
 
     addPromptAction<std::string>(
-        "Validate license",
-        "Paste the license here",
+        "Validate a license",
+        "Paste the license",
         parseText,
         [this](const std::string& licenseText) {
             if (licenseText.empty()) return std::string("The license is empty.");

@@ -313,6 +313,9 @@ void Layout::draw() {
     for (std::size_t i = 0; i < m_children.size(); ++i) {
         const auto& c = m_children[i];
         if (!c.component || !c.component->visible)continue;
+        // A screen can be installed during update() and drawn in that same frame.
+        // Do not rely on a previous update pass to have propagated its geometry.
+        c.component->area(areas[i]);
         if (debug)DrawRectangleLinesEx(areas[i], 1, Color{100, 120, 145, 180});
         c.component->draw();
     }

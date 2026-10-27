@@ -42,12 +42,19 @@ auto ticket = TicketTemplate::renderFile(path, invoice, lines, businessName, i18
 Then use `{{shop.slogan}}`, `{{cashier.name}}`, and `{{#each payments}}{{payment.method}}: {{payment.amount}}\n{{/each}}` in
 `ticket.tpl`.
 
+The touch editor does not keep its available-placeholder catalogue in UI code. Schema version 4 seeds the
+`ticket_placeholders` table with the visible token, its translation key, the valid template fragment, order, and active state.
+Descriptions are resolved from the embedded language JSON catalog, so database rows stay language-independent while the two editor
+columns remain fully localized. Saved templates contain `{{!block:...}}` metadata comments to restore ordering; the renderer removes
+these comments before previewing or printing.
+
 ## USB printer discovery and diagnostics
 
-The sales screen renders and logs the ticket through `TicketTemplate::printFile`, then submits a single RAW job containing the
-drawer pulse and receipt. Only USB backed queues are considered: Windows USB ports (`USB...`) and Linux CUPS `usb://` device URIs.
-If exactly one USB printer is present it is used even if the OS default points elsewhere; if several are present the USB default
-must identify one. Linux deployments need the CUPS client tools installed. The queue must accept ESC/POS RAW data.
+The sales screen renders and logs the ticket through `TicketTemplate::printFile`, then submits a single job containing the drawer
+pulse and receipt directly to the USB bulk OUT endpoint through libusb. No Windows spooler or Linux CUPS queue is used. Printer-class
+devices and known thermal-printer vendors are discovered automatically. The model/profile provides ESC/POS, StarPRNT, ZPL or Brother
+raster commands and a 58/76/80/112 mm paper-width estimate. Linux requires an appropriate udev permission rule; Windows requires a
+WinUSB/libusb-compatible device interface. `NEXOBAR_USB_PRINTER` can select a device by a substring of its displayed name.
 
 In Debug builds, Ajustes has a switch to show a scrollable ticket preview after each print attempt. Release builds compile that
 switch out and force preview mode off. The preview strips ESC/POS control bytes for readability; the printer receives the original

@@ -11,6 +11,7 @@
 #include "database/models/RolePermission.h"
 #include "database/models/Ticket.h"
 #include "database/models/TicketLine.h"
+#include "security/Pin.h"
 #include "license/License.h"
 
 #include <algorithm>
@@ -21,44 +22,24 @@
 #include <sstream>
 
 namespace {
-    std::string kindKey(const SettingsWorkspaceScreen::Kind kind) {
+    std::string kindTitleKey(const SettingsWorkspaceScreen::Kind kind) {
         switch (kind) {
             case SettingsWorkspaceScreen::Kind::Users:
-                return "users";
+                return "settings.users_title";
             case SettingsWorkspaceScreen::Kind::Roles:
-                return "roles";
+                return "settings.roles_title";
             case SettingsWorkspaceScreen::Kind::Permissions:
-                return "permissions";
+                return "settings.permissions";
             case SettingsWorkspaceScreen::Kind::Business:
-                return "business";
+                return "settings.business";
             case SettingsWorkspaceScreen::Kind::Template:
-                return "template";
+                return "settings.template";
             case SettingsWorkspaceScreen::Kind::Status:
-                return "status";
+                return "settings.status_title";
             case SettingsWorkspaceScreen::Kind::History:
-                return "history";
+                return "settings.history_title";
         }
-        return "status";
-    }
-
-    std::string kindTitle(const SettingsWorkspaceScreen::Kind kind) {
-        switch (kind) {
-            case SettingsWorkspaceScreen::Kind::Users:
-                return "Gestión de empleados";
-            case SettingsWorkspaceScreen::Kind::Roles:
-                return "Gestión de roles";
-            case SettingsWorkspaceScreen::Kind::Permissions:
-                return "Permisos por rol";
-            case SettingsWorkspaceScreen::Kind::Business:
-                return "Configuración del negocio";
-            case SettingsWorkspaceScreen::Kind::Template:
-                return "Plantilla del ticket";
-            case SettingsWorkspaceScreen::Kind::Status:
-                return "Información y estado";
-            case SettingsWorkspaceScreen::Kind::History:
-                return "Facturación y cierre";
-        }
-        return "Ajustes";
+        return "settings.title";
     }
 
     template<typename Id>
@@ -80,6 +61,17 @@ namespace {
         return std::filesystem::current_path() / "NexoBar" / "resources" / "tickets" /
                "ticket.tpl";
     }
+
+    std::string_view licenseTypeKey(const License::LicenseType type) {
+        switch (type) {
+            case License::LicenseType::Basic: return "license_types.basic";
+            case License::LicenseType::Standard: return "license_types.standard";
+            case License::LicenseType::Pro: return "license_types.professional";
+            case License::LicenseType::Enterprise: return "license_types.enterprise";
+            case License::LicenseType::Invalid: return "license_types.invalid";
+        }
+        return "license_types.invalid";
+    }
 } // namespace
 
 SettingsWorkspaceScreen::SettingsWorkspaceScreen(const Kind kind,
@@ -93,6 +85,11 @@ SettingsWorkspaceScreen::SettingsWorkspaceScreen(const Kind kind,
       m_historyDate(boost::gregorian::day_clock::local_day()) {
     NexoBarImp app;
     m_font = app->defaultFont();
+    m_virtualKeyboard = std::make_shared<VirtualKeyboard>([this] {
+        const auto found = std::ranges::find_if(m_fields, [](const auto& field) { return field->focused; });
+        return found == m_fields.end() ? InputTextPtr{} : *found;
+    });
+    m_virtualKeyboard->font = m_font;
     for (const auto& text: {m_title, m_summary, m_status}) {
         text->font = m_font;
         text->wrap = true;
@@ -100,10 +97,10 @@ SettingsWorkspaceScreen::SettingsWorkspaceScreen(const Kind kind,
     }
     m_summary->color = Color{190, 199, 214, 255};
     m_status->color = Color{126, 225, 185, 255};
-    m_title->text = app->text("settings." + kindKey(kind), kindTitle(kind));
+    m_title->text = app->text(kindTitleKey(kind));
     addActions({}, {
                    {
-                       app->text("settings.back", "Volver"), [this] {
+                           app->text("settings.back"), [this] {
                            if (m_back)
                                m_back();
                        }
@@ -184,63 +181,69 @@ void SettingsWorkspaceScreen::setStatus(std::string text, const bool error) {
 }
 
 void SettingsWorkspaceScreen::buildStaff() {
+    NexoBarImp app;
     m_root->content.add(m_summary, LayoutSize::fill(), LayoutSize::px(52));
     if (m_kind == Kind::Users) {
-        addLabel("Empleado");
+        addLabel(app->text("settings.employee"));
         m_userSelect = addDropdown();
         m_userSelect->onSelectionChanged = [this](int, const DropdownOption&) {
             loadUser();
         };
-        m_userName = addField("Nombre del empleado");
-        addLabel("Rol del empleado");
+        m_userName = addField(app->text("settings.employee_name"));
+        addLabel(app->text("settings.employee_pin"));
+        m_userPin = addField(app->text("settings.employee_pin_placeholder"));
+        m_userPin->password = true;
+        m_userPin->maxLength = 6;
+        addLabel(app->text("settings.employee_role"));
         m_userRoleSelect = addDropdown();
         addActions({}, {
                        {
-                           "Nuevo",
+                           app->text("settings.new"),
                            [this] {
                                m_userSelect->selectedIndex = -1;
                                m_userName->setText({});
+                               m_userPin->setText({});
                            }
                        },
-                       {"Guardar", [this] { saveUser(); }},
-                       {"Activar / desactivar", [this] { toggleUser(); }},
-                       {"Eliminar", [this] { removeUser(); }, true}
+                       {app->text("settings.save"), [this] { saveUser(); }},
+                       {app->text("settings.toggle"), [this] { toggleUser(); }},
+                       {app->text("settings.delete"), [this] { removeUser(); }, true}
                    });
     } else if (m_kind == Kind::Roles) {
-        addLabel("Rol");
+        addLabel(app->text("settings.role"));
         m_roleSelect = addDropdown();
         m_roleSelect->onSelectionChanged = [this](int, const DropdownOption&) {
             loadRole();
         };
-        m_roleName = addField("Nombre del rol");
-        m_roleDescription = addField("Descripción del rol");
+        m_roleName = addField(app->text("settings.role_name"));
+        m_roleDescription = addField(app->text("settings.role_description"));
         addActions({}, {
                        {
-                           "Nuevo",
+                           app->text("settings.new"),
                            [this] {
                                m_roleSelect->selectedIndex = -1;
                                m_roleName->setText({});
                                m_roleDescription->setText({});
                            }
                        },
-                       {"Guardar", [this] { saveRole(); }},
-                       {"Activar / desactivar", [this] { toggleRole(); }},
-                       {"Eliminar", [this] { removeRole(); }, true}
+                       {app->text("settings.save"), [this] { saveRole(); }},
+                       {app->text("settings.toggle"), [this] { toggleRole(); }},
+                       {app->text("settings.delete"), [this] { removeRole(); }, true}
                    });
     } else {
-        addLabel("Rol");
+        addLabel(app->text("settings.role"));
         m_roleSelect = addDropdown();
         m_roleSelect->onSelectionChanged = [this](int, const DropdownOption&) {
             showPermissionState();
         };
-        addLabel("Permiso existente");
+        addLabel(app->text("settings.permission_existing"));
         m_permissionSelect = addDropdown();
         m_permissionSelect->onSelectionChanged =
                 [this](int, const DropdownOption&) { showPermissionState(); };
-        addActions("Asignación",
+        addActions(app->text("settings.assignment"),
                    {
-                       {"Asignar al rol", [this] { updatePermission(true); }},
-                       {"Quitar del rol", [this] { updatePermission(false); }}
+                       {app->text("settings.assign"), [this] { updatePermission(true); }},
+                       {app->text("settings.unassign"), [this] { updatePermission(false); }}
                    });
     }
     refreshStaff();
@@ -266,15 +269,15 @@ void SettingsWorkspaceScreen::refreshStaff() {
         std::vector<DropdownOption> users, roles, permissions;
         for (const auto& value: m_users)
             users.push_back({
-                value.displayName + (value.active ? "" : " (inactivo)"),
+                value.displayName + (value.active ? "" : app->text("settings.inactive_suffix")),
                 idText(value.id)
             });
         for (const auto& value: m_roles)
             roles.push_back(
-                {value.name + (value.active ? "" : " (inactivo)"), idText(value.id)});
+                {value.name + (value.active ? "" : app->text("settings.inactive_suffix")), idText(value.id)});
         for (const auto& value: m_permissions)
             permissions.push_back(
-                {value.key + " — " + value.description, idText(value.id)});
+                {app->text("permissions." + value.key), idText(value.id)});
         if (m_userSelect)
             m_userSelect->setOptions(std::move(users));
         if (m_userRoleSelect)
@@ -283,10 +286,10 @@ void SettingsWorkspaceScreen::refreshStaff() {
             m_roleSelect->setOptions(std::move(roles));
         if (m_permissionSelect)
             m_permissionSelect->setOptions(std::move(permissions));
-        m_summary->text = std::to_string(m_users.size()) + " empleados · " +
-                          std::to_string(m_roles.size()) + " roles · " +
-                          std::to_string(m_permissions.size()) +
-                          " permisos del sistema";
+        m_summary->text = app->text("settings.staff_summary");
+        replaceToken(m_summary->text, "{users}", std::to_string(m_users.size()));
+        replaceToken(m_summary->text, "{roles}", std::to_string(m_roles.size()));
+        replaceToken(m_summary->text, "{permissions}", std::to_string(m_permissions.size()));
         if (m_userSelect)
             loadUser();
         if (m_roleSelect&& m_kind == Kind::Roles)
@@ -294,7 +297,7 @@ void SettingsWorkspaceScreen::refreshStaff() {
         if (m_permissionSelect)
             showPermissionState();
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
@@ -306,6 +309,7 @@ void SettingsWorkspaceScreen::loadUser() {
     if (found == m_users.end())
         return;
     m_userName->setText(found->displayName);
+    m_userPin->setText({});
     for (std::size_t i = 0; i < m_userRoleSelect->options.size(); ++i)
         if (m_userRoleSelect->options[i].value == idText(found->roleId))
             m_userRoleSelect->select(static_cast<int>(i));
@@ -326,27 +330,37 @@ void SettingsWorkspaceScreen::saveUser() {
     NexoBarImp app;
     try {
         if (m_userName->text.empty())
-            throw std::runtime_error("El nombre del empleado es obligatorio.");
+            throw nexobar::HospitalityError("settings.employee_name_required");
+        if (!m_userPin->text.empty() && !nexobar::Pin::valid(m_userPin->text))
+            throw nexobar::HospitalityError("settings.employee_pin_invalid");
         const auto roleId = selectedId<nexobar::RoleId>(m_userRoleSelect);
         if (!roleId.get())
-            throw std::runtime_error("Selecciona un rol.");
+            throw nexobar::HospitalityError("settings.role_required");
         if (m_userSelect->selected()) {
             auto value = app->database()->get<nexobar::User>(
                 selectedId<nexobar::UserId>(m_userSelect));
             value.displayName = m_userName->text;
             value.roleId = roleId;
+            if (!m_userPin->text.empty()) {
+                value.pinSalt = nexobar::Pin::newSalt();
+                value.pinHash = nexobar::Pin::hash(m_userPin->text, value.pinSalt);
+            }
             app->database()->update(value);
         } else {
             nexobar::User value;
             value.displayName = m_userName->text;
             value.roleId = roleId;
             value.createdAt = boost::posix_time::second_clock::local_time();
+            if (!m_userPin->text.empty()) {
+                value.pinSalt = nexobar::Pin::newSalt();
+                value.pinHash = nexobar::Pin::hash(m_userPin->text, value.pinSalt);
+            }
             app->database()->insert(value);
         }
-        setStatus("Empleado guardado.");
+        setStatus(app->text("settings.employee_saved"));
         refreshStaff();
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
@@ -354,7 +368,7 @@ void SettingsWorkspaceScreen::saveRole() {
     NexoBarImp app;
     try {
         if (m_roleName->text.empty())
-            throw std::runtime_error("El nombre del rol es obligatorio.");
+            throw nexobar::HospitalityError("settings.role_name_required");
         if (m_roleSelect->selected()) {
             auto value = app->database()->get<nexobar::Role>(
                 selectedId<nexobar::RoleId>(m_roleSelect));
@@ -367,10 +381,10 @@ void SettingsWorkspaceScreen::saveRole() {
             value.description = m_roleDescription->text;
             app->database()->insert(value);
         }
-        setStatus("Rol guardado.");
+        setStatus(app->text("settings.role_saved"));
         refreshStaff();
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
@@ -378,15 +392,15 @@ void SettingsWorkspaceScreen::toggleUser() {
     NexoBarImp app;
     try {
         if (!m_userSelect->selected())
-            throw std::runtime_error("Selecciona un empleado.");
+            throw nexobar::HospitalityError("settings.employee_required");
         auto value = app->database()->get<nexobar::User>(
             selectedId<nexobar::UserId>(m_userSelect));
         value.active = !value.active;
         app->database()->update(value);
-        setStatus(value.active ? "Empleado activado." : "Empleado desactivado.");
+        setStatus(app->text(value.active ? "settings.employee_enabled" : "settings.employee_disabled"));
         refreshStaff();
     } catch (const std::exception& e) {
-        setStatus(e.what(), true);
+        setStatus(app->userError(e), true);
     }
 }
 
@@ -394,15 +408,15 @@ void SettingsWorkspaceScreen::toggleRole() {
     NexoBarImp app;
     try {
         if (!m_roleSelect->selected())
-            throw std::runtime_error("Selecciona un rol.");
+            throw nexobar::HospitalityError("settings.role_required");
         auto value = app->database()->get<nexobar::Role>(
             selectedId<nexobar::RoleId>(m_roleSelect));
         value.active = !value.active;
         app->database()->update(value);
-        setStatus(value.active ? "Rol activado." : "Rol desactivado.");
+        setStatus(app->text(value.active ? "settings.role_enabled" : "settings.role_disabled"));
         refreshStaff();
     } catch (const std::exception& e) {
-        setStatus(e.what(), true);
+        setStatus(app->userError(e), true);
     }
 }
 
@@ -410,13 +424,13 @@ void SettingsWorkspaceScreen::removeUser() {
     NexoBarImp app;
     try {
         if (!m_userSelect->selected())
-            throw std::runtime_error("Selecciona un empleado.");
+            throw nexobar::HospitalityError("settings.employee_required");
         app->database()->remove<nexobar::User>(
             selectedId<nexobar::UserId>(m_userSelect));
-        setStatus("Empleado eliminado.");
+        setStatus(app->text("settings.employee_deleted"));
         refreshStaff();
     } catch (const std::exception& e) {
-        setStatus("No se puede eliminar: " + std::string(e.what()), true);
+        setStatus(app->userError(e, "settings.delete_failed"), true);
     }
 }
 
@@ -424,13 +438,13 @@ void SettingsWorkspaceScreen::removeRole() {
     NexoBarImp app;
     try {
         if (!m_roleSelect->selected())
-            throw std::runtime_error("Selecciona un rol.");
+            throw nexobar::HospitalityError("settings.role_required");
         app->database()->remove<nexobar::Role>(
             selectedId<nexobar::RoleId>(m_roleSelect));
-        setStatus("Rol eliminado.");
+        setStatus(app->text("settings.role_deleted"));
         refreshStaff();
     } catch (const std::exception& e) {
-        setStatus("No se puede eliminar: " + std::string(e.what()), true);
+        setStatus(app->userError(e, "settings.delete_failed"), true);
     }
 }
 
@@ -447,16 +461,14 @@ void SettingsWorkspaceScreen::showPermissionState() {
                 Nearon::col < &nexobar::RolePermission::roleId > == roleId &&
                 Nearon::col < &nexobar::RolePermission::permissionId > == permissionId) >
             0;
-    setStatus(assigned
-                  ? "El permiso está asignado al rol."
-                  : "El permiso no está asignado al rol.");
+    setStatus(app->text(assigned ? "settings.permission_assigned" : "settings.permission_unassigned"));
 }
 
 void SettingsWorkspaceScreen::updatePermission(const bool assign) {
     NexoBarImp app;
     try {
         if (!m_roleSelect->selected() || !m_permissionSelect->selected())
-            throw std::runtime_error("Selecciona un rol y un permiso.");
+            throw nexobar::HospitalityError("settings.role_permission_required");
         const auto roleId = selectedId<nexobar::RoleId>(m_roleSelect);
         const auto permissionId =
                 selectedId<nexobar::PermissionId>(m_permissionSelect);
@@ -474,7 +486,7 @@ void SettingsWorkspaceScreen::updatePermission(const bool assign) {
             app->database()->removeWhere<nexobar::RolePermission>(condition);
         showPermissionState();
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
@@ -482,30 +494,30 @@ void SettingsWorkspaceScreen::buildBusiness() {
     NexoBarImp app;
     const auto& business = app->business();
     const std::vector<std::pair<std::string, std::string> > values = {
-        {"Razón social", business.legalName},
-        {"Nombre comercial", business.tradeName},
-        {"NIF", business.nif},
-        {"Dirección", business.address},
-        {"Código postal", business.postalCode},
-        {"Ciudad", business.city},
-        {"Provincia", business.province},
-        {"País", business.country},
-        {"Teléfono", business.phone.value_or("")},
-        {"Correo electrónico", business.email.value_or("")},
-        {"Licencia", business.license}
+        {app->text("settings.field_legal_name"), business.legalName},
+        {app->text("settings.field_trade_name"), business.tradeName},
+        {app->text("settings.field_nif"), business.nif},
+        {app->text("settings.field_address"), business.address},
+        {app->text("settings.field_postal_code"), business.postalCode},
+        {app->text("settings.field_city"), business.city},
+        {app->text("settings.field_province"), business.province},
+        {app->text("settings.field_country"), business.country},
+        {app->text("settings.field_phone"), business.phone.value_or("")},
+        {app->text("settings.field_email"), business.email.value_or("")},
+        {app->text("settings.field_license"), business.license}
     };
     for (const auto& [label, value]: values) {
         addLabel(label);
         addField(label, value);
     }
-    addActions({}, {{"Guardar configuración", [this] { saveBusiness(); }}});
+    addActions({}, {{app->text("settings.save_configuration"), [this] { saveBusiness(); }}});
 }
 
 void SettingsWorkspaceScreen::saveBusiness() {
     NexoBarImp app;
     try {
         if (m_fields.size() != 11)
-            throw std::runtime_error("Formulario de negocio incompleto.");
+            throw nexobar::HospitalityError("settings.business_form_incomplete");
         auto value = app->business();
         value.legalName = m_fields[0]->text;
         value.tradeName = m_fields[1]->text;
@@ -525,56 +537,58 @@ void SettingsWorkspaceScreen::saveBusiness() {
         if (!app->database()->update(value))
             value.id = app->database()->insert(value);
         app->setBusiness(value);
-        setStatus("Configuración del negocio guardada.");
+        setStatus(app->text("settings.business_saved"));
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
 void SettingsWorkspaceScreen::buildTemplate() {
+    NexoBarImp app;
     m_templatePath = activeTemplatePath().string();
-    addLabel("Contenido de la plantilla");
-    auto editor = addField("Plantilla del ticket", {}, true, 330);
+    addLabel(app->text("settings.template_blocks"), 44.f);
+    m_templateBlocks = std::make_shared<TicketTemplateBlockEditor>();
+    m_templateBlocks->font = m_font;
+    m_root->content.add(m_templateBlocks, LayoutSize::fill(), LayoutSize::px(560));
     std::ifstream input(m_templatePath, std::ios::binary);
     std::ostringstream data;
     data << input.rdbuf();
-    editor->setText(data.str());
+    m_templateBlocks->load(data.str());
     addActions({}, {
-                   {"Guardar", [this] { saveTemplate(); }},
-                   {"Recargar", [this] { reloadTemplate(); }},
-                   {"Imprimir prueba", [this] { printTemplateTest(false); }},
-                   {"Prueba + cajón", [this] { printTemplateTest(true); }}
+                   {app->text("settings.save"), [this] { saveTemplate(); }},
+                   {app->text("settings.reload"), [this] { reloadTemplate(); }},
+                   {app->text("settings.print_test"), [this] { printTemplateTest(false); }},
+                   {app->text("settings.test_and_drawer"), [this] { printTemplateTest(true); }}
                });
-    m_summary->text = "Edita texto y placeholders. La prueba usa los datos "
-            "actuales del negocio y el ancho de papel detectado.";
-    m_root->content.add(m_summary, LayoutSize::fill(), LayoutSize::px(55));
 }
 
 void SettingsWorkspaceScreen::saveTemplate() {
+    NexoBarImp app;
     try {
         std::ofstream output(m_templatePath, std::ios::binary | std::ios::trunc);
         if (!output)
-            throw std::runtime_error("No se pudo abrir la plantilla para escribir.");
-        output << m_fields.front()->text;
+            throw nexobar::HospitalityError("settings.template_write_open_failed");
+        output << m_templateBlocks->templateText();
         if (!output)
-            throw std::runtime_error("No se pudo guardar la plantilla.");
-        setStatus("Plantilla guardada.");
+            throw nexobar::HospitalityError("settings.template_save_failed");
+        setStatus(app->text("settings.template_saved"));
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
 void SettingsWorkspaceScreen::reloadTemplate() {
+    NexoBarImp app;
     try {
         std::ifstream input(m_templatePath, std::ios::binary);
         if (!input)
-            throw std::runtime_error("No se pudo abrir la plantilla.");
+            throw nexobar::HospitalityError("settings.template_open_failed");
         std::ostringstream data;
         data << input.rdbuf();
-        m_fields.front()->setText(data.str());
-        setStatus("Plantilla recargada.");
+        m_templateBlocks->load(data.str());
+        setStatus(app->text("settings.template_reloaded"));
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
@@ -582,8 +596,8 @@ void SettingsWorkspaceScreen::printTemplateTest(const bool drawer) {
     NexoBarImp app;
     try {
         nexobar::Ticket ticket;
-        ticket.fullNumber = "PRUEBA-0001";
-        ticket.seriesCode = "PRUEBA";
+        ticket.fullNumber = app->text("receipt.test_number");
+        ticket.seriesCode = app->text("receipt.test_series");
         ticket.number = 1;
         ticket.issuedAt = boost::posix_time::second_clock::local_time();
         ticket.issuerName = app->business().tradeName;
@@ -594,7 +608,7 @@ void SettingsWorkspaceScreen::printTemplateTest(const bool drawer) {
         ticket.total = 1000;
         nexobar::TicketLine line;
         line.lineNumber = 1;
-        line.description = "Ticket de prueba";
+        line.description = app->text("settings.test_line");
         line.quantity = 1000;
         line.unitPrice = 1000;
         line.total = 1000;
@@ -607,31 +621,32 @@ void SettingsWorkspaceScreen::printTemplateTest(const bool drawer) {
                 drawer
                     ? printer.printTicketAndOpenDrawer(rendered, error, *app->i18n())
                     : printer.printText(rendered, error, *app->i18n());
-        setStatus(ok ? "Ticket de prueba enviado." : error, !ok);
+        setStatus(ok ? app->text("settings.test_sent") : error, !ok);
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
 void SettingsWorkspaceScreen::buildStatus() {
+    NexoBarImp app;
     m_templatePath = activeTemplatePath().string();
     m_root->content.add(m_summary, LayoutSize::fill(), LayoutSize::px(205));
-    addActions("Dispositivo",
-               {{"Actualizar", [this] { refreshDeviceStatus(); }}});
-    addActions("Pruebas",
+    addActions(app->text("settings.device"),
+               {{app->text("settings.refresh"), [this] { refreshDeviceStatus(); }}});
+    addActions(app->text("settings.tests"),
                {
-                   {"Ticket", [this] { printTemplateTest(false); }},
+                   {app->text("settings.ticket"), [this] { printTemplateTest(false); }},
                    {
-                       "Cajón",
+                       app->text("settings.drawer"),
                        [this] {
                            NexoBarImp app;
                            std::string error;
                            const bool ok =
                                    PrinterDiagnostics::testDrawer(error, *app->i18n());
-                           setStatus(ok ? "Cajón activado." : error, !ok);
+                           setStatus(ok ? app->text("settings.drawer_opened") : error, !ok);
                        }
                    },
-                   {"Ticket + cajón", [this] { printTemplateTest(true); }}
+                   {app->text("settings.ticket_and_drawer"), [this] { printTemplateTest(true); }}
                });
     refreshDeviceStatus();
 }
@@ -640,75 +655,85 @@ void SettingsWorkspaceScreen::refreshDeviceStatus() {
     NexoBarImp app;
     License license;
     std::ostringstream output;
-    output << "Licencia: "
-            << license.typeName(license.validate(app->business().license)) << "\n";
+    output << app->text("settings.license_prefix")
+            << app->text(licenseTypeKey(license.validate(app->business().license))) << "\n";
     std::string error;
-    const auto printers = PrinterDiagnostics::enumerateUsbPrinters(error);
+    const auto printers = PrinterDiagnostics::enumerateUsbPrinters(error, app->i18n());
     if (!error.empty())
-        output << "Impresora: error de detección (" << error << ")\n";
+        output << app->text("settings.printer_detection_error") << " (" << error << ")\n";
     else if (printers.empty())
-        output << "Impresora: no se detectó ninguna cola USB compatible\n";
+        output << app->text("settings.printer_none") << "\n";
     for (const auto& printer: printers) {
-        output << "Impresora: " << printer.name
-                << (printer.isDefault ? " (predeterminada)" : "")
-                << "\nPuerto: " << printer.port << "\nDriver: "
-                << (printer.driver.empty() ? "no informado" : printer.driver)
-                << "\nPapel: ";
+        std::ostringstream usbIdentifier;
+        usbIdentifier << std::hex << std::setw(4) << std::setfill('0') << printer.vendorId
+                      << ':' << std::setw(4) << printer.productId;
+        std::string usbLocation = app->text("settings.usb_location");
+        replaceToken(usbLocation, "{identifier}", usbIdentifier.str());
+        replaceToken(usbLocation, "{bus}", std::to_string(printer.bus));
+        replaceToken(usbLocation, "{device}", std::to_string(printer.address));
+        output << app->text("settings.printer_prefix") << printer.name
+                << "\n" << usbLocation
+                << "\n" << app->text("settings.manufacturer")
+                << (printer.manufacturer.empty() ? app->text("settings.not_reported") : printer.manufacturer)
+                << "\n" << app->text("settings.paper");
         if (printer.paperWidthMm)
-            output << printer.paperWidthMm << " mm";
+            output << printer.paperWidthMm << app->text("units.millimeters_suffix");
         else
-            output << "no informado por el driver";
+            output << app->text("settings.paper_not_reported");
         if (printer.paperHeightMm)
-            output << " x " << printer.paperHeightMm << " mm";
-        output << "\nComandos cargados: " << printer.commandSet;
+            output << app->text("units.dimension_separator") << printer.paperHeightMm
+                   << app->text("units.millimeters_suffix");
+        output << "\n" << app->text("settings.commands") << printer.commandSet;
         if (printer.dpi)
-            output << " · " << printer.dpi << " dpi";
+            output << app->text("units.detail_separator") << printer.dpi
+                   << app->text("units.dpi_suffix");
         output << "\n";
     }
     m_summary->text = output.str();
-    setStatus("Estado actualizado.");
+    setStatus(app->text("settings.state_updated"));
 }
 
 void SettingsWorkspaceScreen::buildHistory() {
+    NexoBarImp app;
     m_root->content.add(m_summary, LayoutSize::fill(), LayoutSize::px(235));
-    addActions("Periodo", {
+    addActions(app->text("settings.period"), {
                    {
-                       "Día",
+                       app->text("settings.day"),
                        [this] {
                            m_historyPeriod = HistoryPeriod::Day;
                            refreshHistory();
                        }
                    },
                    {
-                       "Mes",
+                       app->text("settings.month"),
                        [this] {
                            m_historyPeriod = HistoryPeriod::Month;
                            refreshHistory();
                        }
                    },
                    {
-                       "Todo", [this] {
+                       app->text("settings.all"), [this] {
                            m_historyPeriod = HistoryPeriod::All;
                            refreshHistory();
                        }
                    }
                });
-    addActions("Fecha", {
-                   {"Anterior", [this] { moveHistory(-1); }},
+    addActions(app->text("settings.date"), {
+                   {app->text("settings.previous"), [this] { moveHistory(-1); }},
                    {
-                       "Hoy",
+                       app->text("settings.today"),
                        [this] {
                            m_historyDate =
                                    boost::gregorian::day_clock::local_day();
                            refreshHistory();
                        }
                    },
-                   {"Siguiente", [this] { moveHistory(1); }}
+                   {app->text("settings.next"), [this] { moveHistory(1); }}
                });
-    addActions("Informe",
+    addActions(app->text("settings.report"),
                {
-                   {"Imprimir", [this] { printHistory(false); }},
-                   {"Cerrar día e imprimir", [this] { printHistory(true); }}
+                   {app->text("settings.print"), [this] { printHistory(false); }},
+                   {app->text("settings.close_day"), [this] { printHistory(true); }}
                });
     refreshHistory();
 }
@@ -751,23 +776,23 @@ std::string SettingsWorkspaceScreen::historyReport() const {
             (payment.method == nexobar::PaymentMethod::Cash ? cash : card) +=
                     payment.amount;
     std::ostringstream output;
-    output << "CIERRE / INFORME DE FACTURACIÓN\n";
+    output << app->text("settings.report_header") << "\n";
     if (m_historyPeriod == HistoryPeriod::Day)
-        output << "Día: " << boost::gregorian::to_iso_extended_string(m_historyDate)
+        output << app->text("settings.report_day") << boost::gregorian::to_iso_extended_string(m_historyDate)
                 << "\n";
     else if (m_historyPeriod == HistoryPeriod::Month)
-        output << "Mes: " << m_historyDate.year() << "-" << std::setw(2)
+        output << app->text("settings.report_month") << m_historyDate.year() << "-" << std::setw(2)
                 << std::setfill('0') << static_cast<int>(m_historyDate.month())
                 << std::setfill(' ') << "\n";
     else
-        output << "Periodo: histórico completo\n";
-    output << "Tickets: " << count
-            << "\nBase imponible: " << nexobar::formatMoney(base, *app->i18n())
-            << "\nImpuestos: " << nexobar::formatMoney(tax, *app->i18n())
-            << "\nTOTAL: " << nexobar::formatMoney(total, *app->i18n())
-            << "\nEfectivo: " << nexobar::formatMoney(cash, *app->i18n())
-            << "\nTarjeta: " << nexobar::formatMoney(card, *app->i18n())
-            << "\n--------------------------------\n"
+        output << app->text("settings.report_all") << "\n";
+    output << app->text("settings.report_tickets") << count
+            << "\n" << app->text("settings.report_tax_base") << nexobar::formatMoney(base, *app->i18n())
+            << "\n" << app->text("settings.report_tax") << nexobar::formatMoney(tax, *app->i18n())
+            << "\n" << app->text("settings.report_total") << nexobar::formatMoney(total, *app->i18n())
+            << "\n" << app->text("settings.report_cash") << nexobar::formatMoney(cash, *app->i18n())
+            << "\n" << app->text("settings.report_card") << nexobar::formatMoney(card, *app->i18n())
+            << "\n" << app->text("reports.separator") << "\n"
             << detail.str();
     return output.str();
 }
@@ -775,9 +800,11 @@ std::string SettingsWorkspaceScreen::historyReport() const {
 void SettingsWorkspaceScreen::refreshHistory() {
     try {
         m_summary->text = historyReport();
-        setStatus("Histórico actualizado.");
+        NexoBarImp app;
+        setStatus(app->text("settings.history_updated"));
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        NexoBarImp app;
+        setStatus(app->userError(error), true);
     }
 }
 
@@ -785,12 +812,13 @@ void SettingsWorkspaceScreen::printHistory(const bool closeDay) {
     NexoBarImp app;
     try {
         if (closeDay && m_historyPeriod != HistoryPeriod::Day)
-            throw std::runtime_error(
-                "Selecciona la vista por día para realizar el cierre.");
+            throw nexobar::HospitalityError("settings.close_day_required");
         TicketPrinter printer;
         std::string error;
-        if (!printer.printText(historyReport(), error, *app->i18n()))
-            throw std::runtime_error(error);
+        if (!printer.printText(historyReport(), error, *app->i18n())) {
+            setStatus(error.empty() ? app->text("errors.operation_failed") : error, true);
+            return;
+        }
         std::size_t closed = 0;
         if (closeDay) {
             const auto payments = app->database()->selectAll<nexobar::Payment>();
@@ -812,11 +840,10 @@ void SettingsWorkspaceScreen::printHistory(const bool closeDay) {
                 }
         }
         setStatus(closeDay
-                      ? "Cierre impreso. Sesiones de caja cerradas: " +
-                        std::to_string(closed)
-                      : "Informe impreso.");
+                      ? app->text("settings.close_printed") + std::to_string(closed)
+                      : app->text("settings.report_printed"));
     } catch (const std::exception& error) {
-        setStatus(error.what(), true);
+        setStatus(app->userError(error), true);
     }
 }
 
@@ -842,6 +869,10 @@ void SettingsWorkspaceScreen::layout() {
 
 void SettingsWorkspaceScreen::update(const float deltaSeconds) {
     layout();
+    m_virtualKeyboard->area({m_area.x + 12.f, m_area.y + m_area.height - 190.f,
+                             std::max(0.f, m_area.width - 24.f), 178.f});
+    m_virtualKeyboard->update(deltaSeconds);
+    if (m_virtualKeyboard->visible) UIInput::suppressClicks();
     m_root->update(deltaSeconds);
 }
 
@@ -850,4 +881,9 @@ void SettingsWorkspaceScreen::draw() {
     m_root->draw();
     for (const auto& dropdown: m_dropdowns)
         dropdown->drawOverlay();
+    if (m_virtualKeyboard->visible) {
+        DrawRectangleRec({m_area.x, m_area.y + m_area.height - 205.f, m_area.width, 205.f},
+                         Color{18, 26, 37, 245});
+        m_virtualKeyboard->draw();
+    }
 }

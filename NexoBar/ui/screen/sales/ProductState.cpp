@@ -5,11 +5,7 @@
 
 #include <algorithm>
 
-namespace {
-    NexoBar* app() { return NexoBarImp::get(); }
-} // namespace
-
-ProductState::ProductState(Nearon::Database* database) : m_database(database) {
+ProductState::ProductState(Nearon::Database* database, const std::int64_t selectedUserId) : m_database(database) {
     if (database) {
         if (const auto business = database->query<nexobar::Business>().first()) {
             businessName = business->tradeName.empty()
@@ -22,21 +18,20 @@ ProductState::ProductState(Nearon::Database* database) : m_database(database) {
                 .where(Nearon::col < &nexobar::User::active > == true)
                 .orderBy(Nearon::col < &nexobar::User::id >.asc())
                 .all();
-        if (!users.empty()) {
-            userId = users.front().id.get();
-            roleId = users.front().roleId.get();
-            userName = users.front().displayName;
+        const auto selected = selectedUserId > 0
+            ? std::ranges::find(users, nexobar::UserId{selectedUserId}, &nexobar::User::id)
+            : users.begin();
+        if (selected != users.end()) {
+            userId = selected->id.get();
+            roleId = selected->roleId.get();
+            userName = selected->displayName;
         }
         reloadCatalog();
     }
     quantities.resize(products.size(), 0);
-    if (businessName.empty())
-        businessName =
-                app() ? app()->text("header.business_fallback", "NexoBar") : "NexoBar";
-    if (userName.empty())
-        userName = app()
-                       ? app()->text("users.default_admin_name", "Administrator")
-                       : "Administrator";
+    NexoBarImp nexo;
+    if (businessName.empty()) businessName = nexo->text("header.business_fallback");
+    if (userName.empty()) userName = nexo->text("users.default_admin_name");
 }
 
 bool ProductState::hasPermission(const std::string& permissionKey) const {
@@ -54,9 +49,20 @@ bool ProductState::hasPermission(const std::string& permissionKey) const {
                permission->id) > 0;
 }
 
+void ProductState::refreshSessionIdentity() {
+    if (!m_database || userId <= 0)
+        return;
+    const auto user = m_database->select<nexobar::User>(nexobar::UserId{userId});
+    if (!user)
+        return;
+    userName = user->displayName;
+    roleId = user->roleId.get();
+}
+
 bool ProductState::canOpenSettings() const {
     static constexpr const char* managementPermissions[] = {
-        "manage_users", "manage_cash", "view_reports", "configure_business"
+        "manage_users", "manage_roles", "manage_permissions", "manage_cash",
+        "view_reports", "configure_business", "configure_printer", "edit_ticket_template"
     };
     return std::ranges::any_of(managementPermissions, [this](const char* key) {
         return hasPermission(key);
@@ -79,17 +85,14 @@ void ProductState::reloadCatalog() {
          .where(Nearon::col < &nexobar::Category::active > == true)
          .orderBy(Nearon::col < &nexobar::Category::id >.asc())
          .all())
-        categories.push_back(
-            {c.id.get(), c.name, c.parentId ? c.parentId->get() : 0, c.icon});
+        categories.push_back({c.id.get(), c.name, c.icon});
     for (const auto& p:
          m_database->query<nexobar::Product>()
          .where(Nearon::col < &nexobar::Product::active > == true)
          .orderBy(Nearon::col < &nexobar::Product::id >.asc())
          .all())
-        products.push_back({
-            p.id.get(), p.categoryId.get(), p.name, p.price,
-            p.taxId.get(), p.openPrice
-        });
+        products.push_back({p.id.get(), p.categoryId.get(), p.name, p.price,
+                            p.taxId.get()});
     for (const auto& t: m_database->query<nexobar::Tax>()
          .where(Nearon::col < &nexobar::Tax::active > == true)
          .orderBy(Nearon::col < &nexobar::Tax::id >.asc())
@@ -114,15 +117,13 @@ void ProductState::reloadCatalog() {
 }
 
 bool ProductState::createCategory(const std::string& name,
-                                  const std::string& icon,
-                                  std::int64_t parentId) {
+                                  const std::string& icon) {
     if (!m_database || name.empty())
         return false;
     nexobar::Category row;
     row.name = name;
     row.icon = icon.empty() ? "logo.png" : icon;
-    if (parentId > 0)
-        row.parentId = nexobar::CategoryId{parentId};
+    row.parentId.reset();
     m_database->insert(row);
     reloadCatalog();
     return true;
@@ -130,7 +131,7 @@ bool ProductState::createCategory(const std::string& name,
 
 bool ProductState::createProduct(const std::string& name,
                                  std::int64_t categoryId, std::int64_t taxId,
-                                 std::int64_t priceMinor, bool openPrice) {
+                                 std::int64_t priceMinor) {
     if (!m_database || name.empty() || categoryId <= 0 || taxId <= 0 ||
         priceMinor < 0)
         return false;
@@ -139,26 +140,22 @@ bool ProductState::createProduct(const std::string& name,
     row.categoryId = nexobar::CategoryId{categoryId};
     row.taxId = nexobar::TaxId{taxId};
     row.price = priceMinor;
-    row.openPrice = openPrice;
+    row.openPrice = false;
     m_database->insert(row);
     reloadCatalog();
     return true;
 }
 
 bool ProductState::updateCategory(std::int64_t id, const std::string& name,
-                                  const std::string& icon,
-                                  std::int64_t parentId) {
-    if (!m_database || name.empty() || id == parentId)
+                                  const std::string& icon) {
+    if (!m_database || name.empty())
         return false;
     auto row = m_database->select<nexobar::Category>(nexobar::CategoryId{id});
     if (!row || !row->active)
         return false;
     row->name = name;
     row->icon = icon.empty() ? "logo.png" : icon;
-    row->parentId =
-            parentId > 0
-                ? std::optional<nexobar::CategoryId>{nexobar::CategoryId{parentId}}
-                : std::nullopt;
+    row->parentId.reset();
     if (!m_database->update(*row))
         return false;
     reloadCatalog();
@@ -167,7 +164,7 @@ bool ProductState::updateCategory(std::int64_t id, const std::string& name,
 
 bool ProductState::updateProduct(std::int64_t id, const std::string& name,
                                  std::int64_t categoryId, std::int64_t taxId,
-                                 std::int64_t priceMinor, bool openPrice) {
+                                 std::int64_t priceMinor) {
     if (!m_database || name.empty() || categoryId <= 0 || taxId <= 0 ||
         priceMinor < 0)
         return false;
@@ -178,7 +175,7 @@ bool ProductState::updateProduct(std::int64_t id, const std::string& name,
     row->categoryId = nexobar::CategoryId{categoryId};
     row->taxId = nexobar::TaxId{taxId};
     row->price = priceMinor;
-    row->openPrice = openPrice;
+    row->openPrice = false;
     if (!m_database->update(*row))
         return false;
     reloadCatalog();
@@ -257,10 +254,9 @@ std::int64_t ProductState::total() const {
 std::string ProductState::formatPrice(const std::int64_t amountMinor) const {
     const auto whole = amountMinor / 100;
     const auto cents = amountMinor % 100;
-    const std::string separator =
-            app() ? app()->text("number.decimal_separator", ",") : ",";
-    const std::string currency =
-            app() ? app()->text("number.currency_suffix", " €") : " €";
+    NexoBarImp nexo;
+    const std::string separator = nexo->text("number.decimal_separator");
+    const std::string currency = nexo->text("number.currency_suffix");
     return std::to_string(whole) + separator + (cents < 10 ? "0" : "") +
            std::to_string(cents) + currency;
 }

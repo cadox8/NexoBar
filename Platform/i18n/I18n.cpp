@@ -29,6 +29,13 @@ namespace platform {
             messages = std::move(root["messages"]);
         }
 
+        explicit Catalog(const std::string_view source) {
+            const nlohmann::json root = nlohmann::json::parse(source);
+            if (!root.is_object() || !root.contains("messages") || !root["messages"].is_object())
+                throw std::runtime_error("Embedded language catalog must contain a messages object");
+            messages = root["messages"];
+        }
+
         [[nodiscard]] std::string get(std::string_view key) const {
             const nlohmann::json* value = &messages;
             std::size_t start = 0;
@@ -48,7 +55,7 @@ namespace platform {
             for (char& c : locale) {
                 if (c == '_') c = '-';
             }
-            if (locale.empty()) return "en-US";
+            if (locale.empty()) return "es-ES";
             return locale;
         }
 
@@ -103,10 +110,38 @@ namespace platform {
             fallback = loadCatalog(directory, fallbackLocale, ignored);
             if (!fallback) fallback = catalog;
         }
+
+
+        Impl(const std::unordered_map<std::string, std::string>& sources,
+             std::string requestedLocale, std::string fallbackLocale) {
+            requestedLocale = normalizeLocale(std::move(requestedLocale));
+            fallbackLocale = normalizeLocale(std::move(fallbackLocale));
+            const auto find = [&sources](const std::string& requested) -> std::pair<std::string, std::string_view> {
+                if (const auto exact = sources.find(requested); exact != sources.end()) return {exact->first, exact->second};
+                const auto dash = requested.find('-');
+                const std::string language = requested.substr(0, dash);
+                for (const auto& [name, source] : sources)
+                    if (name == language || name.starts_with(language + "-")) return {name, source};
+                return {};
+            };
+            auto selected = find(requestedLocale);
+            if (selected.first.empty()) selected = find(fallbackLocale);
+            if (selected.first.empty()) throw std::runtime_error("No embedded fallback language catalog");
+            locale = selected.first;
+            catalogPath = std::filesystem::path("embedded") / (locale + ".json");
+            catalog = std::make_shared<Catalog>(selected.second);
+            const auto fallbackSource = find(fallbackLocale);
+            fallback = fallbackSource.first.empty() || fallbackSource.first == locale
+                ? catalog : std::make_shared<Catalog>(fallbackSource.second);
+        }
     };
 
     I18n::I18n(const std::filesystem::path& catalogDirectory, std::string requestedLocale, std::string fallbackLocale)
         : m_impl(std::make_unique<Impl>(catalogDirectory, std::move(requestedLocale), std::move(fallbackLocale))) {}
+
+    I18n::I18n(const std::unordered_map<std::string, std::string>& embeddedCatalogs,
+               std::string requestedLocale, std::string fallbackLocale)
+        : m_impl(std::make_unique<Impl>(embeddedCatalogs, std::move(requestedLocale), std::move(fallbackLocale))) {}
 
     I18n::~I18n() = default;
     I18n::I18n(I18n&&) noexcept = default;
@@ -162,6 +197,6 @@ namespace platform {
             return normalizeLocale(std::move(result));
         }
 #endif
-        return "en-US";
+        return "es-ES";
     }
 }

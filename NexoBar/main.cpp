@@ -10,7 +10,8 @@
 int main() {
     Log::Init();
 
-    NexoBarImp::set(new NexoBar());
+    NexoBar application;
+    NexoBarImp::set(&application);
     NexoBarImp app;
 
     int exitCode = 0;

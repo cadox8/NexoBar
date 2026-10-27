@@ -8,7 +8,8 @@
 #include <string>
 
 namespace nexobar {
-    /// A catalogue item; openPrice lets the bartender enter its price at sale time.
+    /// A fixed-price catalogue item. openPrice remains as a legacy database
+    /// column so existing installations can be upgraded without rebuilding data.
     class Product {
     public:
         ProductId id{};

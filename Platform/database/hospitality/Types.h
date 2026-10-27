@@ -35,6 +35,7 @@ namespace nexobar {
     using FiscalRecordId = Id<struct FiscalRecordIdTag>;
     using FiscalEventId = Id<struct FiscalEventIdTag>;
     using AuditEventId = Id<struct AuditEventIdTag>;
+    using TicketPlaceholderId = Id<struct TicketPlaceholderIdTag>;
 
     using Cents = std::int64_t;
     using BasisPoints = std::int32_t;

@@ -17,9 +17,9 @@ namespace nexobar {
     IssuedSale SaleService::issue(const Business& business, const UserId user,
                                   const std::vector<SaleItem>& items) {
         if (items.empty())
-            throw std::invalid_argument("No se puede emitir una venta vacía.");
+            throw HospitalityError("errors.sale_empty");
         if (!m_database.exists<User>(user))
-            throw std::invalid_argument("El empleado activo no existe.");
+            throw HospitalityError("errors.active_user_missing");
 
         return m_database.transaction([&] {
             const Timestamp issuedAt = AppTime::UTCNow();
@@ -32,12 +32,12 @@ namespace nexobar {
                 TicketSeries created;
                 created.code = seriesCode;
                 created.year = year;
-                created.description = "Tickets simplificados";
+                created.description = m_text("ticket_series.simplified");
                 created.id = m_database.insert(created);
                 series = created;
             }
             if (!series->active)
-                throw std::runtime_error("La serie de tickets del año está desactivada.");
+                throw HospitalityError("errors.ticket_series_inactive");
             ++series->lastNumber;
             m_database.update(*series);
 
@@ -62,7 +62,7 @@ namespace nexobar {
             std::int32_t lineNumber = 1;
             for (const auto& item: items) {
                 if (item.quantity <= 0 || item.unitPrice < 0)
-                    throw std::invalid_argument("La venta contiene una línea inválida.");
+                    throw HospitalityError("errors.sale_line_invalid");
                 TicketLine line;
                 line.lineNumber = lineNumber++;
                 line.productId = item.productId;

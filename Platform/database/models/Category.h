@@ -11,6 +11,7 @@ namespace nexobar {
     public:
         CategoryId id{};
         std::string name;
+        // Legacy compatibility only. NexoBar keeps this empty: categories are flat.
         std::optional<CategoryId> parentId;
         std::string icon;
         bool active{true};

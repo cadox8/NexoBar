@@ -1,8 +1,10 @@
 #include "BusinessMenu.h"
 
 #include "license/license.h"
+#include "../Management.h"
 
 #include <ftxui/component/component.hpp>
+#include <ftxui/component/event.hpp>
 #include <ftxui/dom/elements.hpp>
 
 #include <algorithm>
@@ -24,7 +26,7 @@ namespace {
 BusinessMenu::BusinessMenu(Nearon::Database& database)
     : database_(database), labels_{
           {
-              "Legal name *", "Trading name *", "Tax ID (NIF) *", "Registered address *",
+              "Legal name *", "Trading name *", "Tax ID *", "Registered address *",
               "Postal code *", "City *", "Province *", "Country (ISO 3166-1, e.g. ES)",
               "Phone (optional)", "Email (optional)", "License *"
           }
@@ -88,14 +90,14 @@ void BusinessMenu::init() {
 
     component_ = ftxui::Renderer(content, [this, fields, saveButton, backButton] {
         return ftxui::vbox({
-                   ftxui::text("Register Business") | ftxui::bold | ftxui::color(ftxui::Color::Cyan) | ftxui::center,
-                   ftxui::text("Enter the business details. Optional fields may be left blank. Paste the license generated beforehand.") | ftxui::dim,
+                   ftxui::text("Register a business") | ftxui::bold | ftxui::color(ftxui::Color::Cyan) | ftxui::center,
+                   ftxui::text("Enter the business details. Optional fields may be left blank. Paste a previously generated license.") | ftxui::dim,
                    ftxui::separator(),
                    fields->Render() | ftxui::flex,
                    ftxui::paragraph(feedback_) | ftxui::color(feedbackColor_),
                    ftxui::separator(),
                    ftxui::hbox({saveButton->Render(), ftxui::text("  "), backButton->Render()}) | ftxui::center,
-                   ftxui::text("Tab/Shift+Tab: change field | Click a field to edit | Enter: activate button") | ftxui::dim | ftxui::center
+                   ftxui::text("Tab/Shift+Tab: change field | Click: edit | Enter: activate button") | ftxui::dim | ftxui::center
                }) | ftxui::border | ftxui::size(ftxui::WIDTH, ftxui::LESS_THAN, 100)
                | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 45) | ftxui::center;
     });
@@ -133,7 +135,7 @@ void BusinessMenu::save() {
     License license;
     const License::LicenseType licenseType = license.validate(values[10]);
     if (licenseType == License::LicenseType::Invalid) {
-        feedback_ = "The license is invalid.";
+        feedback_ = "Invalid license.";
         feedbackColor_ = ftxui::Color::Red;
         return;
     }
@@ -160,7 +162,7 @@ void BusinessMenu::save() {
         feedback_ = existing ? "Business details updated." : "Business registered.";
         feedbackColor_ = ftxui::Color::GreenYellow;
     } catch (...) {
-        feedback_ = "Could not save the business details.";
+        feedback_ = "The business details could not be saved.";
         feedbackColor_ = ftxui::Color::Red;
     }
 }

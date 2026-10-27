@@ -1,0 +1,47 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "ci-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "NEXOBAR_BUILD_TESTS": "ON",
+        "NEXOBAR_FETCH_RAYLIB": "OFF"
+      }
+    },
+    {
+      "name": "ci-windows",
+      "inherits": "ci-base",
+      "displayName": "CI Windows Release",
+      "cacheVariables": { "CMAKE_C_COMPILER": "cl", "CMAKE_CXX_COMPILER": "cl" }
+    },
+    {
+      "name": "ci-linux",
+      "inherits": "ci-base",
+      "displayName": "CI Linux Release",
+      "cacheVariables": { "CMAKE_C_COMPILER": "gcc", "CMAKE_CXX_COMPILER": "g++" }
+    },
+    {
+      "name": "dev",
+      "inherits": "ci-windows",
+      "displayName": "Local Debug",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "ci-windows", "configurePreset": "ci-windows", "jobs": 4 },
+    { "name": "ci-linux", "configurePreset": "ci-linux", "jobs": 4 },
+    { "name": "dev", "configurePreset": "dev", "jobs": 4 }
+  ],
+  "testPresets": [
+    { "name": "ci-windows", "configurePreset": "ci-windows", "output": { "outputOnFailure": true } },
+    { "name": "ci-linux", "configurePreset": "ci-linux", "output": { "outputOnFailure": true } },
+    { "name": "dev", "configurePreset": "dev", "output": { "outputOnFailure": true } }
+  ]
+}

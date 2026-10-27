@@ -7,22 +7,24 @@
 #include <string>
 
 void SplashScreen::update(const float deltaSeconds) {
-    NexoBar* app = NexoBarImp::get();
-    if (!app)
+    NexoBarImp nexo;
+    if (!nexo)
         return;
 
+    m_elapsed += deltaSeconds;
+
     if (!m_assetsLoaded) {
-        m_assetsLoaded = app->assets().preloadNext();
+        m_assetsLoaded = nexo->assets().preloadNext();
         if (m_assetsLoaded) {
-            const TexturePtr source = app->assets().getTexture("nexobar-icon");
+            const TexturePtr source = nexo->assets().getTexture("nexobar-icon");
             Image image = LoadImageFromTexture(*source);
             if (!image.data)
-                throw std::runtime_error("Could not prepare the splash logo image");
+                throw std::runtime_error(nexo->text("errors.splash_image"));
             ImageAlphaCrop(&image, 0.1f);
             const Texture2D texture = LoadTextureFromImage(image);
             UnloadImage(image);
             if (!texture.id)
-                throw std::runtime_error("Could not prepare the splash logo texture");
+                throw std::runtime_error(nexo->text("errors.splash_texture"));
             m_logo = TexturePtr(new Texture2D(texture), [](Texture2D* loaded) {
                 UnloadTexture(*loaded);
                 delete loaded;
@@ -30,18 +32,15 @@ void SplashScreen::update(const float deltaSeconds) {
         }
     }
 
-    if (m_assetsLoaded)
-        m_elapsed += deltaSeconds;
-
-    if (!m_transitioned && m_assetsLoaded && m_elapsed >= 3.f) {
+    if (!m_transitioned && m_elapsed >= 3.f) {
         m_transitioned = true;
-        app->screens().changeScreen(app->startupErrors().empty() ? "catalog" : "errors");
+        nexo->screens().changeScreen(m_assetsLoaded ? (nexo->canEnterSession() ? "login" : "errors") : "loading");
     }
 }
 
 void SplashScreen::draw() {
-    NexoBar* app = NexoBarImp::get();
-    const FontPtr font = app ? app->defaultFont() : FontPtr{};
+    NexoBarImp nexo;
+    const FontPtr font = nexo ? nexo->defaultFont() : FontPtr{};
     const int width = GetScreenWidth();
     const int height = GetScreenHeight();
 
@@ -59,7 +58,8 @@ void SplashScreen::draw() {
         };
         DrawTexturePro(*m_logo, source, destination, {0, 0}, 0.f, WHITE);
     } else {
-        const char* title = "NexoBar";
+        const std::string titleText = nexo ? nexo->text("app.name") : std::string{};
+        const char* title = titleText.c_str();
         if (font) {
             const Vector2 size = MeasureTextEx(*font, title, 56, 1);
             DrawTextEx(*font, title, {(width - size.x) * .5f, (height - size.y) * .5f}, 56, 1, RAYWHITE);
@@ -68,11 +68,12 @@ void SplashScreen::draw() {
         }
     }
 
-    const std::string status = app
+    std::string status = nexo
                                    ? (m_assetsLoaded
-                                          ? app->text("splash.preparing", "Preparando el punto de venta...")
-                                          : app->assets().loadingStatus())
-                                   : "Cargando recursos...";
+                                          ? nexo->text("splash.preparing")
+                                          : nexo->text("splash.loading_resource"))
+                                   : std::string{};
+    if (nexo) replaceToken(status, "{resource}", nexo->assets().loadingResource());
     const Color statusColor{.r = 190, .g = 199, .b = 214, .a = 255};
     if (font) {
         const Vector2 size = MeasureTextEx(*font, status.c_str(), 22, 1);

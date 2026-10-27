@@ -20,7 +20,7 @@ public:
     [[nodiscard]] virtual Rectangle area() const noexcept { return m_area; }
 
 protected:
-    void replaceToken(std::string& value, const std::string& token, const std::string& replacement) {
+    static void replaceToken(std::string& value, const std::string& token, const std::string& replacement) {
         std::size_t position = 0;
 
         while ((position = value.find(token, position)) != std::string::npos) {

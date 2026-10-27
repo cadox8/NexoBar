@@ -1,8 +1,5 @@
 #include "ProductScreen.h"
 
-#include "../menus/HeaderScreen.h"
-#include "../menus/SideMenuScreen.h"
-#include "../settings/SettingsHomeScreen.h"
 #include "CategoriesCatalogScreen.h"
 #include "ProductCatalogScreen.h"
 #include "SelectedProductsScreen.h"
@@ -72,29 +69,7 @@ ProductScreen::ProductScreen(std::shared_ptr<ProductState> state) {
     sale->addWeighted("catalog", catalogHost, 6.4f);
     sale->addWeighted("order", order, 3.6f);
 
-    auto page = std::make_shared<ScreenLayout>(LayoutAxis::Vertical);
-    page->addWeighted("sale", sale);
-
-    auto pageHost = std::make_shared<ScreenLayout>(LayoutAxis::Vertical);
-    pageHost->addWeighted("page", page);
-    const auto settings = std::make_shared<SettingsHomeScreen>(
-        [state](const std::string& key) { return state->hasPermission(key); });
-    const auto showSale = [pageHost, page] { pageHost->setScreen("page", page); };
-    const auto showSettings = [pageHost, settings] {
-        pageHost->setScreen("page", settings);
-    };
-
-    auto body = std::make_shared<ScreenLayout>(LayoutAxis::Horizontal);
-    body->gap(8.f);
-    LayoutOptions menuOptions;
-    menuOptions.width = LayoutSize::px(44.f);
-    body->addScreen("menu", std::make_shared<SideMenuScreen>(showSale, showSettings, state->canOpenSettings()), menuOptions);
-    body->addWeighted("content", pageHost, 1.f);
-
-    LayoutOptions headerOptions;
-    headerOptions.height = LayoutSize::px(44.f);
-    addScreen("header", std::make_shared<HeaderScreen>(std::move(state)), headerOptions);
-    addWeighted("body", body, 9.f);
+    addWeighted("sale", sale);
 }
 
 void ProductScreen::update(float dt) {

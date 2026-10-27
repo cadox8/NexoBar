@@ -18,10 +18,11 @@ ProductCatalogScreen::ProductCatalogScreen(std::shared_ptr<ProductState> state)
     m_emptyLabel->font = m_font;
     m_emptyLabel->color = Color{190, 199, 214, 255};
     m_emptyLabel->horizontalAlignment = TextHorizontalAlignment::Center;
-    m_backButton = std::make_shared<Button>("Volver");
-    m_addButton = std::make_shared<Button>("+");
-    m_editButton = std::make_shared<Button>("Editar");
-    m_deleteButton = std::make_shared<Button>("Eliminar");
+    m_backButton = std::make_shared<Button>(app->text("categories.back"));
+    m_addButton = std::make_shared<Button>();
+    m_addButton->icon = ButtonIcon::Plus;
+    m_editButton = std::make_shared<Button>(app->text("categories.edit"));
+    m_deleteButton = std::make_shared<Button>(app->text("categories.delete"));
     for (auto b: {m_backButton, m_addButton, m_editButton, m_deleteButton}) {
         b->font = m_font;
         b->fontSize = 15;
@@ -35,8 +36,9 @@ ProductCatalogScreen::ProductCatalogScreen(std::shared_ptr<ProductState> state)
     m_backButton->padding = LayoutInsets::symmetric(6, 3);
     m_backButton->onClick([this] { backRequested(); });
     m_addButton->onClick([this] { addRequested(); });
-    m_editButton->image = NexoBarImp::get()->assets().getTexture("icon-edit");
-    m_deleteButton->image = NexoBarImp::get()->assets().getTexture("icon-delete");
+    m_addButton->enabled = m_state->hasPermission("manage_products");
+    m_editButton->image = app->assets().getTexture("icon-edit");
+    m_deleteButton->image = app->assets().getTexture("icon-delete");
     m_editButton->text.clear();
     m_deleteButton->text.clear();
     m_editButton->onClick([this] { setActionMode(m_actionMode == ActionMode::Edit ? ActionMode::Normal : ActionMode::Edit); });
@@ -53,6 +55,7 @@ void ProductCatalogScreen::setActionMode(ActionMode mode) {
 }
 
 void ProductCatalogScreen::refresh() {
+    NexoBarImp app;
     m_productCards.clear();
     m_productCards.reserve(m_state->products.size());
     for (std::size_t index = 0; index < m_state->products.size(); ++index) {
@@ -75,6 +78,7 @@ void ProductCatalogScreen::refresh() {
         card->background = Color{36, 44, 57, 255};
         card->hoverBackground = Color{48, 61, 78, 255};
         card->priceColor = Color{91, 207, 169, 255};
+        card->outOfStockLabel = app->text("products.out_of_stock");
         card->font = m_font;
         m_productCards.push_back(std::move(card));
     }
@@ -100,10 +104,10 @@ void ProductCatalogScreen::rebuildProductGrid() {
     const float inset = std::max(0.f, std::min(m_area.width, m_area.height) * .025f);
     const float width = std::max(0.f, m_area.width - inset * 2.f);
     const float height = std::max(0.f, m_area.height - inset * 2.f);
-    const float target = std::max(1.f, std::min(width * .25f, height * .24f));
+    const float target = std::max(1.f, std::min(width * .31f, height * .27f));
     const float gap = std::max(1.f, std::min(width, height) * .018f);
     const float gridWidth = std::max(0.f, width - inset * 2.f);
-    const auto columns = std::size_t{4};
+    const auto columns = std::size_t{3};
     const float cellWidth = std::max(1.f, (gridWidth - gap * static_cast<float>(columns - 1)) / static_cast<float>(columns));
     const float cellHeight = std::min(cellWidth, target);
 
@@ -121,7 +125,7 @@ void ProductCatalogScreen::rebuildProductGrid() {
             m_catalog->content.add(row, LayoutSize::fill(), LayoutSize::px(cellHeight));
         }
         auto& card = m_productCards[index];
-        card->fontSize = static_cast<int>(std::clamp(std::min(cellWidth, cellHeight) * .105f, 12.f, 25.f));
+        card->fontSize = static_cast<int>(std::clamp(std::min(cellWidth, cellHeight) * .155f, 18.f, 29.f));
         card->image = m_state->fallbackImage;
         row->content.add(card, LayoutSize::px(cellWidth), LayoutSize::px(cellHeight));
         column = (column + 1) % columns;
@@ -137,8 +141,8 @@ void ProductCatalogScreen::layout() {
     const float actionsWidth = 68.f + 8.f + 40.f + 8.f + 38.f + 8.f + 38.f;
     m_title->area({m_area.x + inset + 76, m_area.y + inset, std::max(0.f, m_area.width - 2 * inset - actionsWidth - 76.f), titleHeight - inset});
     m_backButton->area({m_area.x + inset, m_area.y + inset, 68, 38});
-    m_editButton->enabled = !m_productCards.empty();
-    m_deleteButton->enabled = !m_productCards.empty();
+    m_editButton->enabled = m_state->hasPermission("manage_products") && !m_productCards.empty();
+    m_deleteButton->enabled = m_state->hasPermission("manage_products") && !m_productCards.empty();
     m_addButton->area({m_area.x + m_area.width - inset - 40, m_area.y + inset, 38, 38});
     m_editButton->area({m_area.x + m_area.width - inset - 40 - 8 - 38, m_area.y + inset, 38, 38});
     m_deleteButton->area({m_area.x + m_area.width - inset - 40 - 8 - 38 - 8 - 38, m_area.y + inset, 38, 38});
@@ -148,7 +152,8 @@ void ProductCatalogScreen::layout() {
         std::max(0.f, m_area.height - titleHeight - inset)
     };
     m_catalog->area(listArea);
-    m_emptyLabel->text = NexoBarImp::get()->text("products.empty", "No hay productos en esta categoría.");
+    NexoBarImp nexo;
+    m_emptyLabel->text = nexo->text("products.empty");
     m_emptyLabel->fontSize = std::clamp(unit * .045f, 14.f, 23.f);
     m_emptyLabel->area(listArea);
 }
@@ -160,7 +165,8 @@ void ProductCatalogScreen::update(float deltaSeconds) {
     m_editButton->update(deltaSeconds);
     m_deleteButton->update(deltaSeconds);
     if (m_state->fallbackImage == nullptr) {
-        const TexturePtr source = NexoBarImp::get()->assets().getTexture("nexobar-icon");
+        NexoBarImp nexo;
+        const TexturePtr source = nexo->assets().getTexture("nexobar-icon");
         Image image = LoadImageFromTexture(*source);
         if (image.data) {
             ImageAlphaCrop(&image, .1f);

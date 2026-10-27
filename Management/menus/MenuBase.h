@@ -45,7 +45,7 @@ public:
                 submit_ = [this, parse, createResult] {
                     const auto value = parse(input_);
                     if (!value) {
-                        feedback_ = "Invalid input.";
+                        feedback_ = invalidInputMessage();
                         return;
                     }
                     showResult(createResult(*value));
@@ -66,7 +66,7 @@ public:
             [this, prompt = std::move(prompt), choices = std::move(choices),
              createResult = std::move(createResult)] {
                 if (choices.empty()) {
-                    showResult("No options available.");
+                    showResult(noOptionsMessage());
                     return;
                 }
                 prompt_ = prompt;
@@ -109,6 +109,8 @@ protected:
     void setSelectionColor(ftxui::Color color);
     ftxui::Color selectionColor() const;
     void showResult(std::string result);
+    static const std::string& invalidInputMessage();
+    static const std::string& noOptionsMessage();
 
 private:
     enum class Page {

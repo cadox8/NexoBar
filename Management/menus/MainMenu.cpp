@@ -25,8 +25,11 @@ void MainMenu::init() {
         if (on_open_licenses)
             on_open_licenses();
     });
-    addAction("Register business", [this] {
+    addAction("Register a business", [this] {
         if (on_register_business) on_register_business();
+    });
+    addAction("Simulate a business", [this] {
+        if (on_simulate_business) on_simulate_business();
     });
     setFooterAction("Exit", [this] {
         if (on_exit)

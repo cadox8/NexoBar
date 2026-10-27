@@ -6,23 +6,24 @@ la ventana; los pocos tamaños fijos se reservan para objetivos compactos de nav
 
 ## Estructura de la aplicación
 
-`ProductScreen` monta un header de 44 px y, debajo, un rail de 44 px junto al área principal. El área de venta tiene exactamente
-dos paneles: un catálogo de navegación y la lista del pedido. El panel de catálogo alterna entre categorías y productos con
+`MainScreen` mantiene una cabecera de 52 px y, debajo, un menú lateral adaptable junto al contenido reemplazable. `ProductScreen`
+ocupa el contenido de Venta y tiene dos paneles: un catálogo de navegación y la lista del pedido. El panel de catálogo alterna entre categorías y productos con
 `ScreenLayout::setScreen("catalog", vista)`. Categorías y productos mantienen instancias separadas; la lista de venta permanece
 montada durante el cambio y conserva cantidades, importe manual, teclado numérico y total.
 
 ```text
-ProductScreen
-├── HeaderScreen (44 px)
+MainScreen
+├── HeaderScreen (52 px)
 └── Body
-    ├── SideMenuScreen (44 px)
-    └── Workspace
+    ├── SideMenuScreen (145–230 px)
+    └── Content (Venta ↔ Reportes ↔ Ajustes)
+        └── ProductScreen
         ├── CatalogHost (CategoriesCatalogScreen ↔ ProductCatalogScreen)
         └── SelectedProductsScreen (persistente)
 ```
 
-El rail no contiene marca ni texto: presenta iconos cuadrados de Venta arriba y Ajustes abajo. La cabecera muestra el negocio, el
-usuario y el reloj. Ajustes cambia el contenido central, dejando siempre visible la navegación común.
+El menú muestra Venta y Reportes arriba; Ajustes y Cerrar sesión permanecen abajo. La cabecera muestra `{bar} - {user}` y el
+reloj. Cualquier sección cambia solo el contenido central, dejando siempre visible la navegación común.
 
 ## Flujo del catálogo
 
@@ -42,7 +43,7 @@ pedido.
 
 ## Medidas, escala y legibilidad
 
-Header y rail usan medidas de 44 px a tamaño normal. Los paneles del espacio de trabajo se reparten con pesos flexibles 6:4; el
+La cabecera usa 52 px y el menú lateral combina porcentaje con límites mínimo/máximo. Los paneles de Venta se reparten con pesos flexibles; el
 catálogo puede crecer con la ventana, mientras la lista de venta mantiene su zona. El contenido usa márgenes y huecos
 proporcionales al viewport, tipografías con límites legibles y `ProductCard` con esquinas suaves. El botón «Añadir importe» tiene
 un hueco propio respecto a la última fila del teclado numérico.
@@ -75,7 +76,8 @@ sirven para overlays, como el diálogo modal.
 
 ## Archivos principales
 
-- `../NexoBar/ui/screen/sales`: composición general, navegación y overlay modal.
+- `../NexoBar/ui/screen/main`: marco persistente de cabecera, menú y contenido.
+- `../NexoBar/ui/screen/reports`: informes por día, mes y año.
 - `../NexoBar/ui/screen/sales`: catálogo activo, persistencia y estado del pedido.
 - `../NexoBar/ui/screen/sales`: tarjetas de categorías y acciones.
 - `../NexoBar/ui/screen/sales`: tarjetas de productos y navegación de categoría.

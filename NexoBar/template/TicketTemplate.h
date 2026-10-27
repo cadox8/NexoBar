@@ -1,5 +1,6 @@
 #pragma once
 #include "database/hospitality/HospitalityDatabase.h"
+#include "i18n/I18n.h"
 #include "printer/ReceiptLayout.h"
 #include <string>
 #include <vector>

@@ -7,7 +7,7 @@
 // Product tile designed for the catalog area of a POS screen.
 class ProductCard final : public IComponent {
 public:
-    std::string name, price, detail;
+    std::string name, price, detail, outOfStockLabel;
     TexturePtr image;
     FontPtr font;
     int fontSize = 22;

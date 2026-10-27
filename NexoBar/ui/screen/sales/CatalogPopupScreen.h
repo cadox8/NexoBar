@@ -3,7 +3,6 @@
 #include "../IScreen.h"
 #include "../../components/text/InputText.h"
 #include "../../components/controls/DropdownComponent.h"
-#include "../../components/controls/CheckBox.h"
 #include "../../components/button/Button.h"
 #include <functional>
 #include <optional>
@@ -36,8 +35,7 @@ private:
 
     std::shared_ptr<ProductState> m_state;
     InputTextPtr m_name, m_icon, m_price;
-    DropdownComponentPtr m_parent, m_category, m_tax;
-    CheckBoxPtr m_openPrice;
+    DropdownComponentPtr m_category, m_tax;
     ButtonPtr m_save, m_cancel;
     FontPtr m_font;
     bool m_visible = false, m_productForm = false;

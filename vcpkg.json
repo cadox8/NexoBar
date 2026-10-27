@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "nexobar",
+  "version-semver": "0.2.0",
+  "dependencies": [
+    "boost-date-time",
+    "boost-convert",
+    "boost-serialization",
+    "boost-signals2",
+    "ftxui",
+    "gtest",
+    "libusb",
+    "nlohmann-json",
+    "raylib",
+    "sqlite3"
+  ]
+}

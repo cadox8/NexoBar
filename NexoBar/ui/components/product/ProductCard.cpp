@@ -18,10 +18,11 @@ void ProductCard::draw() {
     const float textX = m_area.x + 8;
     const float textWidth = std::max(0.f, m_area.width - 16);
     const float footerHeight = fontSize * (price.empty() ? 1.f : 2.f) + 8.f;
-    const float imageSide = showImage ? std::max(0.f, std::min(textWidth, m_area.height - footerHeight - 12.f)) : 0.f;
+    const float availableImage = std::max(0.f, m_area.height - footerHeight - 10.f);
+    const float imageSide = showImage ? std::max(0.f, std::min(textWidth * .84f, availableImage * .90f)) : 0.f;
     const Rectangle imageArea{
         m_area.x + (m_area.width - imageSide) * .5f,
-        m_area.y + 6,
+        m_area.y + 4,
         imageSide,
         imageSide
     };
@@ -66,7 +67,7 @@ void ProductCard::draw() {
     UI::endScissor();
     if (outOfStock) {
         DrawRectangleRec(m_area, Color{20, 24, 31, 150});
-        const char* label = "AGOTADO";
+        const char* label = outOfStockLabel.c_str();
         const float width = font
                                 ? MeasureTextEx(*font, label, static_cast<float>(fontSize), 1).x
                                 : static_cast<float>(MeasureText(label, fontSize));

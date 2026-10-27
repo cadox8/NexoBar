@@ -26,4 +26,5 @@ private:
     StaticTextPtr m_context;
     StaticTextPtr m_clock;
     FontPtr m_font;
+    float m_identityRefreshElapsed = 0.f;
 };

@@ -2,6 +2,8 @@
 
 #include "../../../NexoBar.h"
 #include "SettingsWorkspaceScreen.h"
+#include "SettingsScreens.h"
+#include "RolePermissionsScreen.h"
 
 #include <algorithm>
 
@@ -9,11 +11,12 @@ StaffSettingsScreen::StaffSettingsScreen(std::function<void()> back)
     : m_back(std::move(back)),
       m_root(std::make_shared<BlockComponent>(LayoutAxis::Vertical,
                                               Color{24, 31, 42, 255})),
-      m_title(std::make_shared<StaticText>("Empleados, roles y permisos")),
-      m_description(
-          std::make_shared<StaticText>("Selecciona qué quieres gestionar. Cada "
-              "opción se abre en su propia vista.")) {
-    m_font = NexoBarImp::get()->defaultFont();
+      m_title(std::make_shared<StaticText>()),
+      m_description(std::make_shared<StaticText>()) {
+    NexoBarImp nexo;
+    m_font = nexo->defaultFont();
+    m_title->text = nexo->text("settings.staff");
+    m_description->text = nexo->text("settings.staff_choice");
     for (const auto& text: {m_title, m_description}) {
         text->font = m_font;
         text->wrap = true;
@@ -23,7 +26,7 @@ StaffSettingsScreen::StaffSettingsScreen(std::function<void()> back)
     m_backRow = std::make_shared<SettingsActionRow>(
         "", m_font, std::vector<SettingsActionRow::Action>{
             {
-                "Volver", [this] {
+                nexo->text("settings.back"), [this] {
                     if (m_back)
                         m_back();
                 }
@@ -32,9 +35,9 @@ StaffSettingsScreen::StaffSettingsScreen(std::function<void()> back)
     m_navigation = std::make_shared<SettingsActionRow>(
         "", m_font,
         std::vector<SettingsActionRow::Action>{
-            {"Empleados", [this] { openUsers(); }},
-            {"Roles", [this] { openRoles(); }},
-            {"Permisos", [this] { openPermissions(); }}
+            {nexo->text("settings.users"), [this] { openUsers(); }},
+            {nexo->text("settings.roles"), [this] { openRoles(); }},
+            {nexo->text("settings.permissions"), [this] { openPermissions(); }}
         });
     m_root->content.add(m_backRow, LayoutSize::fill(), LayoutSize::px(42));
     m_root->content.add(m_title, LayoutSize::fill(), LayoutSize::px(58));
@@ -43,22 +46,19 @@ StaffSettingsScreen::StaffSettingsScreen(std::function<void()> back)
 }
 
 void StaffSettingsScreen::openUsers() {
-    m_pages.setScreen("detail", std::make_shared<SettingsWorkspaceScreen>(
-                          SettingsWorkspaceScreen::Kind::Users,
+    m_pages.setScreen("detail", std::make_shared<UsersSettingsScreen>(
                           [this] { m_detailOpen = false; }));
     m_detailOpen = true;
 }
 
 void StaffSettingsScreen::openRoles() {
-    m_pages.setScreen("detail", std::make_shared<SettingsWorkspaceScreen>(
-                          SettingsWorkspaceScreen::Kind::Roles,
+    m_pages.setScreen("detail", std::make_shared<RolesSettingsScreen>(
                           [this] { m_detailOpen = false; }));
     m_detailOpen = true;
 }
 
 void StaffSettingsScreen::openPermissions() {
-    m_pages.setScreen("detail", std::make_shared<SettingsWorkspaceScreen>(
-                          SettingsWorkspaceScreen::Kind::Permissions,
+    m_pages.setScreen("detail", std::make_shared<RolePermissionsScreen>(
                           [this] { m_detailOpen = false; }));
     m_detailOpen = true;
 }

@@ -1,11 +1,13 @@
 #pragma once
 
 #include "database/models/Business.h"
+#include "database/hospitality/HospitalityDatabase.h"
 #include "database/models/Ticket.h"
 #include "database/models/TicketLine.h"
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Nearon {
@@ -30,12 +32,14 @@ namespace nexobar {
     // atomically.
     class SaleService {
     public:
-        explicit SaleService(Nearon::Database& database) : m_database(database) {}
+        SaleService(Nearon::Database& database, TextProvider text)
+            : m_database(database), m_text(std::move(text)) {}
 
         IssuedSale issue(const Business& business, UserId user,
                          const std::vector<SaleItem>& items);
 
     private:
         Nearon::Database& m_database;
+        TextProvider m_text;
     };
 } // namespace nexobar

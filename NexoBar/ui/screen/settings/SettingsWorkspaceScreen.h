@@ -4,7 +4,9 @@
 #include "../../components/layout/ScrollableBlock.h"
 #include "../../components/settings/SettingsActionRow.h"
 #include "../../components/text/InputText.h"
+#include "../../components/text/VirtualKeyboard.h"
 #include "../../components/text/StaticText.h"
+#include "../../components/ticket/TicketTemplateBlockEditor.h"
 #include "../IScreen.h"
 #include "database/models/Permission.h"
 #include "database/models/Role.h"
@@ -15,7 +17,7 @@
 #include <string>
 #include <vector>
 
-class SettingsWorkspaceScreen final : public IScreen {
+class SettingsWorkspaceScreen : public IScreen {
 public:
     enum class Kind {
         Users,
@@ -113,11 +115,13 @@ private:
 
     DropdownComponentPtr m_userSelect, m_userRoleSelect, m_roleSelect,
             m_permissionSelect;
-    InputTextPtr m_userName, m_roleName, m_roleDescription;
+    InputTextPtr m_userName, m_userPin, m_roleName, m_roleDescription;
     std::vector<nexobar::User> m_users;
     std::vector<nexobar::Role> m_roles;
     std::vector<nexobar::Permission> m_permissions;
     std::string m_templatePath;
+    TicketTemplateBlockEditorPtr m_templateBlocks;
+    VirtualKeyboardPtr m_virtualKeyboard;
     HistoryPeriod m_historyPeriod = HistoryPeriod::Day;
     boost::gregorian::date m_historyDate;
 };

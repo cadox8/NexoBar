@@ -18,7 +18,6 @@ struct ProductState {
     struct Category {
         std::int64_t id;
         std::string name;
-        std::int64_t parentId = 0;
         std::string icon = "logo.png";
     };
 
@@ -28,7 +27,6 @@ struct ProductState {
         std::string name;
         std::int64_t priceMinor;
         std::int64_t taxId = 0;
-        bool openPrice = false;
     };
 
     struct Tax {
@@ -37,23 +35,25 @@ struct ProductState {
         std::int64_t rate;
     };
 
-    explicit ProductState(Nearon::Database* database);
+    explicit ProductState(Nearon::Database* database, std::int64_t selectedUserId = 0);
 
     void reloadCatalog();
 
-    bool createCategory(const std::string& name, const std::string& icon,
-                        std::int64_t parentId);
+    // Refreshes mutable session data (display name and role) without replacing
+    // the current sale or its selected products.
+    void refreshSessionIdentity();
+
+    bool createCategory(const std::string& name, const std::string& icon);
 
     bool createProduct(const std::string& name, std::int64_t categoryId,
-                       std::int64_t taxId, std::int64_t priceMinor,
-                       bool openPrice);
+                       std::int64_t taxId, std::int64_t priceMinor);
 
     bool updateCategory(std::int64_t id, const std::string& name,
-                        const std::string& icon, std::int64_t parentId);
+                        const std::string& icon);
 
     bool updateProduct(std::int64_t id, const std::string& name,
                        std::int64_t categoryId, std::int64_t taxId,
-                       std::int64_t priceMinor, bool openPrice);
+                       std::int64_t priceMinor);
 
     bool deactivateCategory(std::int64_t id);
 
