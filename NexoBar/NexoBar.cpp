@@ -4,7 +4,7 @@
 
 #include "NexoBar.h"
 
-#include "license/license.h"
+#include "license/License.h"
 #include "database/hospitality/HospitalityDatabase.h"
 #include "manager/ScreenManager.h"
 #include "ui/screen/splash/MessageScreen.h"

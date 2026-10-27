@@ -1,6 +1,6 @@
 #include "BusinessMenu.h"
 
-#include "license/license.h"
+#include "license/License.h"
 #include "../Management.h"
 
 #include <ftxui/component/component.hpp>

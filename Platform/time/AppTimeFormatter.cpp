@@ -1,4 +1,6 @@
 #include "AppTimeFormatter.h"
+
+#include <cstdint>
 #include <ctime>
 
 std::string AppTimeFormatter::ISO8601Utc(const boost::posix_time::ptime& t) {

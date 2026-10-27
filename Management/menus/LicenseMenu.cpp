@@ -1,7 +1,7 @@
 #include "LicenseMenu.h"
 
 #include "../Management.h"
-#include "license/license.h"
+#include "license/License.h"
 
 #include <vector>
 

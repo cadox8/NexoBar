@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(NexoBar VERSION 0.2.0 LANGUAGES CXX)
+project(NexoBar VERSION 0.6.0 LANGUAGES CXX)
 
 if (POLICY CMP0207)
     cmake_policy(SET CMP0207 NEW)
@@ -107,8 +107,8 @@ install(RUNTIME_DEPENDENCY_SET nexobar_runtime_dependencies
         DIRECTORIES ${NEXOBAR_RUNTIME_SEARCH_DIRECTORIES}
         PRE_EXCLUDE_REGEXES "api-ms-.*" "ext-ms-.*"
         POST_EXCLUDE_REGEXES
-            ".*[Ww][Ii][Nn][Dd][Oo][Ww][Ss][/\\\\].*"
-            "^/lib/.*" "^/lib64/.*" "^/usr/lib/.*" "^/usr/lib64/.*"
+        ".*[Ww][Ii][Nn][Dd][Oo][Ww][Ss][/\\\\].*"
+        "^/lib/.*" "^/lib64/.*" "^/usr/lib/.*" "^/usr/lib64/.*"
         DESTINATION .
         COMPONENT NexoBarRuntime)
 

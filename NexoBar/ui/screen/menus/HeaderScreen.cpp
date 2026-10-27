@@ -5,6 +5,7 @@
 #include <raylib.h>
 
 #include <algorithm>
+#include <ctime>
 #include <stdexcept>
 #include <string>
 

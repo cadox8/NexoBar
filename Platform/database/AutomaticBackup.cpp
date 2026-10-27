@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 
 #include <chrono>
+#include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>

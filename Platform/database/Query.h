@@ -32,7 +32,8 @@ namespace Nearon {
         template<typename T>
         T readRecord(const Row& row, const int offset) {
             T record{};
-            TableOf<T>::forEachColumn([&]<typename T0, typename T1>([[maybe_unused]] T0 column, T1 index) {
+            TableOf<T>::forEachColumn([&]<typename T0, typename T1>([[maybe_unused]] T0 column,
+                                                                    [[maybe_unused]] T1 index) {
                 T0::write(record, row[offset + static_cast<int>(T1::value)]);
             });
             return record;
